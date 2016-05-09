@@ -1,3 +1,18 @@
+/*
+ * Copyright (C) 2015 Alexey Ragozin
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.gridkit.nanoparser;
 
 import java.util.Arrays;
@@ -11,7 +26,7 @@ public class NanoParserTest {
     @Test
     public void test_basic_op_rank() {
         
-        SyntaticScope scope = NanoGrammar.buildTable()
+        SyntaticScope scope = NanoGrammar.newParseTable()
                 .term("[A-Z]")
                 .skip("\\s")
                 .infixOp("+", "\\+")
@@ -29,7 +44,7 @@ public class NanoParserTest {
     @Test
     public void test_parents() {
         
-        SyntaticScope scope = NanoGrammar.buildTable()
+        SyntaticScope scope = NanoGrammar.newParseTable()
                 .term("[A-Z]")
                 .skip("\\s")
                 .infixOp("+", "\\+")
@@ -50,13 +65,13 @@ public class NanoParserTest {
     @Test
     public void test_quited_sting() {
         
-        SyntaticScope quoted = NanoGrammar.buildTable()
+        SyntaticScope quoted = NanoGrammar.newParseTable()
                 .term("[^\\\\']+")
                 .term("ESCAPE", "\\\\.?")
                 .glueOp("CONCAT")
                 .toScope();
         
-        SyntaticScope scope = NanoGrammar.buildTable()
+        SyntaticScope scope = NanoGrammar.newParseTable()
                 .term("[A-Z]")
                 .skip("\\s")
                 .infixOp("+", "\\+")
@@ -77,13 +92,13 @@ public class NanoParserTest {
     @Test
     public void test_function_call() {
         
-        SyntaticScope quoted = NanoGrammar.buildTable()
+        SyntaticScope quoted = NanoGrammar.newParseTable()
                 .term("[^\\\\']+")
                 .term("ESCAPE", "\\\\.?")
                 .glueOp("CONCAT")
                 .toScope();
         
-        SyntaticScope scope = NanoGrammar.buildTable()
+        SyntaticScope scope = NanoGrammar.newParseTable()
                 .term("[A-Z]")
                 .skip("\\s")
                 .infixOp("+", "\\+")
@@ -92,7 +107,7 @@ public class NanoParserTest {
                 .enclosure("\\'", "\\'").scope(quoted)
                 .toLazyScope();
 
-        SyntaticScope functionArgs = NanoGrammar.buildTable()
+        SyntaticScope functionArgs = NanoGrammar.newParseTable()
                 .clone(scope)
                 .infixOp("COMMA", ",").rank(0) // reduced rank
                 .toScope();

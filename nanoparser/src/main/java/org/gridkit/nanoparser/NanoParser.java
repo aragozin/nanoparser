@@ -1,3 +1,18 @@
+/*
+ * Copyright (C) 2016 Alexey Ragozin
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.gridkit.nanoparser;
 
 import java.util.ArrayList;
@@ -6,8 +21,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.gridkit.nanoparser.NanoGrammar.OperatorInfo;
-import org.gridkit.nanoparser.NanoGrammar.SyntaticScope;
 import org.gridkit.nanoparser.NanoGrammar.ScopeBuilder;
+import org.gridkit.nanoparser.NanoGrammar.SyntaticScope;
 import org.gridkit.nanoparser.SemanticActionHandler.ActionHandler;
 
 public class NanoParser<C> {
@@ -236,10 +251,10 @@ public class NanoParser<C> {
 
     protected static void error(Token token, String message, Exception e) {
         if (e != null) {
-            throw new ParserException(token.text.toString(), token.offset, message, e);
+            throw new ParserException(token.text, token.offset, token.line, token.pos, message, e);
         }
         else {
-            throw new ParserException(token.text.toString(), token.offset, message);
+            throw new ParserException(token.text, token.offset, token.line, token.pos, message);
         }
     }
     
@@ -398,7 +413,13 @@ public class NanoParser<C> {
             }
             else if (op.rank >= 0) {
                 if (stack.isEmpty()) {
-                    error(op.token, " operator expected");
+                    if (op.op.isPrefix()) {
+                        stack.add(op);
+                        return;
+                    }
+                    else {
+                        error(op.token, "Missing left argument for '" + op.token.body + "'");
+                    }
                 }
                 while(true) {
                     int lor = lastOpRank();
@@ -407,7 +428,18 @@ public class NanoParser<C> {
                         break;
                     }
                     else {
-                        mergeLastOp();
+                        if (last().rank >= 0) {
+                            if (op.op.isPrefix()) {
+                                stack.add(op);
+                                break;
+                            }
+                            else {
+                                error(op.token, "Two consequive operators");
+                            }
+                        }
+                        else {
+                            mergeLastOp();
+                        }
                         continue;
                     }
                 }
@@ -437,14 +469,27 @@ public class NanoParser<C> {
             int s = stack.size();
             ParseNode b = stack.remove(s - 1);
             ParseNode o = stack.remove(s - 2);
-            ParseNode a = stack.remove(s - 3);
             if (o.rank < 0) {
                 throw new RuntimeException("Op already collapsed");
             }
-            o.leftNode = a;
-            o.rightNode = b;
-            o.rank = -1;
-            stack.add(o);
+
+            if (stack.isEmpty() || last().rank >= 0) {
+                if (o.op.isPrefix()) {
+                    // process prefix operator
+                    o.leftNode = b;
+                    o.rightNode = null;
+                    o.rank = -1;
+                    stack.add(o);
+                }                
+            }
+            else {
+                ParseNode a = stack.remove(s - 3);
+                // TODO process right associativity
+                o.leftNode = a;
+                o.rightNode = b;
+                o.rank = -1;
+                stack.add(o);
+            }
         }
     }
     
@@ -470,10 +515,13 @@ public class NanoParser<C> {
         CharSequence text;
         String body;
         int offset;
-        @SuppressWarnings("unused")
         int line;
-        @SuppressWarnings("unused")
-        int pos;        
+        int pos;
+        
+        @Override
+        public String toString() {
+            return body;
+        }
     }
     
     private static class ParseNode {
@@ -483,6 +531,21 @@ public class NanoParser<C> {
         OperatorInfo op;
         ParseNode leftNode;
         ParseNode rightNode;
+        @Override
+        
+        public String toString() {
+            StringBuilder sb = new StringBuilder();
+            sb.append(op.id()).append("[").append(token);
+            if (leftNode != null) {
+                sb.append(",").append(leftNode);
+            }
+            if (rightNode != null) {
+                sb.append(",").append(rightNode);
+            }
+            sb.append("]");
+            return sb.toString();
+        }
+        
         
     }
 }
