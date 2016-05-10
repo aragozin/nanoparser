@@ -55,7 +55,7 @@ public class ParserException extends RuntimeException {
     }
     
     public String formatVerboseErrorMessage() {
-        return "Error: " + getMessage() + "\n Line: " + (line + 1) + " Position" + position + "\n" + formatSourceReference();
+        return "Error: " + getMessage() + "\nLine: " + (line + 1) + " Position: " + position + "\n" + formatSourceReference();
     }
     
     /**

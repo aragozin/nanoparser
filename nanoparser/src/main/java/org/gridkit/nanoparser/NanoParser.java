@@ -40,11 +40,8 @@ public class NanoParser<C> {
         state.text = source;
         ParseNode node =  parse(state, parseTable);
         Object v = convertTree(parserContext, type, node);
-        if (v instanceof ConversionError) {
-            error(((ConversionError) v).token, "Cannot convert to " + ((ConversionError) v).targetType);
-        }
-        else if (v instanceof OperationError) {
-            error(((OperationError) v).token, "Operator inapplicable");
+        if (v instanceof Error) {
+            error(((Error) v).token, ((Error) v).message);
         }
         return type.cast(v);
     }
@@ -108,7 +105,7 @@ public class NanoParser<C> {
                 }                
             }
             // No token matched
-            error(prev, "Unparsable");
+            error(prev, "Cannot parse next token");
         }
         return parser.collapse(stream.emptyToken());
     }
@@ -151,12 +148,15 @@ public class NanoParser<C> {
     }
 
     private <T> Object convertToken(C parserContext, Class<T> type, String id, Token token) {
-        ActionHandler<C, T, Object, Void> h = actionDispatcher.lookupUnary(id, type);
-        if (h == null) {
+        if (id.length() == 0 && type != String.class) {
             return new ConversionError(token, type, String.class); 
         }
+        ActionHandler<C, T, Object, Void> h = actionDispatcher.lookupUnary(id, type);
+        if (h == null) {
+            return new OperationError(token, type, id); 
+        }
         else {
-            return h.apply(parserContext, token.body, token.body, null);
+            return callUnary(parserContext, h, token, token.body);
         }
     }
 
@@ -171,7 +171,7 @@ public class NanoParser<C> {
                 return v;
             }
             else {
-                return h.apply(parserContext, token.body, v, null);
+                return callUnary(parserContext, h, token, v);
             }
         }
     }
@@ -192,7 +192,7 @@ public class NanoParser<C> {
                 return v2;
             }
             
-            return h.apply(parserContext, token.body, v1, v2);
+            return callBinary(parserContext, h, token, v1, v2);
         }
     }
 
@@ -212,36 +212,53 @@ public class NanoParser<C> {
         return v;
     }
 
+    @SuppressWarnings("unchecked")
+    protected <T> T callUnary(C parserContext, ActionHandler<C, T, Object, Void> h, Token token, Object param) {
+        try {
+            return h.apply(parserContext, token.body, param, null);
+        }
+        catch(SemanticExpection e) {
+            return (T)new SematicError(token, e.getMessage());
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    protected <T> T callBinary(C parserContext, ActionHandler<C, T, Object, Object> h, Token token, Object v1, Object v2) {
+        try {
+            return h.apply(parserContext, token.body, v1, v2);
+        }
+        catch(SemanticExpection e) {
+            return (T)new SematicError(token, e.getMessage());
+        }
+    }
+
     private static abstract class Error {
+        Token token;
+        String message;
+    }
+
+    private static class SematicError extends Error {
         
+        public SematicError(Token token, String message) {
+            this.token = token;
+            this.message = message;
+                    
+        }
     }
     
     private static class ConversionError extends Error {
         
-        Token token;
-        Class<?> targetType;
-        @SuppressWarnings("unused")
-        Class<?> sourceType;
-        
         public ConversionError(Token token, Class<?> targetType, Class<?> sourceType) {
             this.token = token;
-            this.targetType = targetType;
-            this.sourceType = sourceType;
+            this.message = "Requed type '" + targetType.getSimpleName() + "' but found '" + sourceType.getSimpleName() + "'";
         }
     }
 
     private static class OperationError extends Error {
         
-        Token token;
-        @SuppressWarnings("unused")
-        Class<?> targetType;
-        @SuppressWarnings("unused")
-        String opId;
-
         public OperationError(Token token, Class<?> targetType, String opId) {
             this.token = token;
-            this.targetType = targetType;
-            this.opId = opId;
+            this.message = "No action for '" + opId + "' producing '" + targetType.getSimpleName() + "'";
         }
     }
     
@@ -320,8 +337,7 @@ public class NanoParser<C> {
         
         @Override
         public void addEnclosing(String pattern, OperatorInfo op, SyntaticScope nestedScope) {
-            ParseTableElement e = new ParseTableElement();
-            e.matcher = Pattern.compile(pattern).matcher("");
+            ParseTableElement e = new ParseTableElement(pattern);
             e.operatorInfo = op;
             e.enclosing = true;
             e.subscope = nestedScope;
@@ -337,8 +353,7 @@ public class NanoParser<C> {
         
         @Override
         public void addOperator(String pattern, OperatorInfo op) {
-            ParseTableElement e = new ParseTableElement();
-            e.matcher = Pattern.compile(pattern).matcher("");
+            ParseTableElement e = new ParseTableElement(pattern);
             e.operatorInfo = op;
             table.add(e);
         }
@@ -348,13 +363,17 @@ public class NanoParser<C> {
             if (escapeToken != null) {
                 throw new IllegalArgumentException("Cannot define second escape token");
             }
-            escapeToken = Pattern.compile(pattern).matcher("");
+            if (pattern.startsWith("~")) {
+                escapeToken = Pattern.compile(pattern.substring(1)).matcher("");
+            }
+            else {
+                escapeToken = Pattern.compile(Pattern.quote(pattern)).matcher("");
+            }
         }
         
         @Override
         public void addToken(String pattern, OperatorInfo op) {
-            ParseTableElement e = new ParseTableElement();
-            e.matcher = Pattern.compile(pattern).matcher("");
+            ParseTableElement e = new ParseTableElement(pattern);
             e.operatorInfo = op;
             e.term = true;
             table.add(e);
@@ -362,6 +381,12 @@ public class NanoParser<C> {
         
         @Override
         public void addSkipToken(String pattern) {
+            if (pattern.startsWith("~")) {
+                pattern = pattern.substring(1);
+            }
+            else {
+                pattern = Pattern.quote(pattern);
+            }
             if (skipPattern != null) {
                 pattern = "(" + pattern + ")|(" + skipPattern.pattern().pattern() + ")";
                 skipPattern = null;
@@ -384,7 +409,7 @@ public class NanoParser<C> {
                 error(mark, "Empty expression");
             }
             if (last().rank > 0) {
-                error(last().token, "Missing right argument");
+                error(last().token, "Missing right hand side '" + last().token.body + "'");
             }
             
             while(stack.size() > 1) {
@@ -404,7 +429,7 @@ public class NanoParser<C> {
                 }
                 else {
                     if (last().rank < 0) {
-                        error(op.token, " operator expected");
+                        error(op.token, "Operator expected");
                     }
                     else {
                         stack.add(op);
@@ -418,7 +443,7 @@ public class NanoParser<C> {
                         return;
                     }
                     else {
-                        error(op.token, "Missing left argument for '" + op.token.body + "'");
+                        error(op.token, "Missing left hand side '" + op.token.body + "'");
                     }
                 }
                 while(true) {
@@ -502,6 +527,15 @@ public class NanoParser<C> {
         SyntaticScope subscope;
         ParseTable subtable;
         
+        public ParseTableElement(String pattern) {
+            if (pattern.startsWith("~")) {
+                matcher = Pattern.compile(pattern.substring(1)).matcher("");
+            }
+            else {
+                matcher = Pattern.compile(Pattern.quote(pattern)).matcher("");
+            }
+        }
+
         public synchronized ParseTable subtable() {
             if (subtable == null) {
                 subtable = new ParseTable(subscope);

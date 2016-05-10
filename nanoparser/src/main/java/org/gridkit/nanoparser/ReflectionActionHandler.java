@@ -206,7 +206,7 @@ public abstract class ReflectionActionHandler<C> implements SemanticActionHandle
                     return method.invoke(ReflectionActionHandler.this, args);
                 }
             } catch (InvocationTargetException e) {
-                throw throwUnchecked(e);
+                throw throwUnchecked(e.getTargetException());
             } catch (IllegalAccessException e) {
                 throw new RuntimeException(e);
             }

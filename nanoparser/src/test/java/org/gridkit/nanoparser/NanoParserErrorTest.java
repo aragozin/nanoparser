@@ -1,3 +1,18 @@
+/*
+ * Copyright (C) 2016 Alexey Ragozin
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.gridkit.nanoparser;
 
 import java.util.ArrayList;
@@ -14,17 +29,28 @@ import org.junit.runners.Parameterized.Parameters;
 public class NanoParserErrorTest extends ReflectionActionHandler<Void> {
 
     public static final SyntaticScope SIMPLE_GRAMMAR = NanoGrammar.newParseTable()
-            .skip("\\s") // ignore white spaces
-            .term("DECIMAL", "\\d+") // simple decimal token
-            .infixOp("+", "\\+")
-            .infixOrPrefixOp("-", "\\-")
-            .infixOp("*", "\\*").rank(2)
-            .enclosure("\\(", "\\)")
+            .skip("~\\s") // ignore white spaces
+            .term("DECIMAL", "~\\d+") // simple decimal token
+            .infixOp("+", "+")
+            .infixOp("|", "|")
+            .infixOp("?", "?")
+            .infixOrPrefixOp("-", "-")
+            .infixOp("*", "*").rank(2)
+            .enclosure("(", ")")
+            .enclosure("strLen", "strLen(", ")")
+            .enclosure("boom", "boom(", ")")
+            .term("ALPHA", "a")       // special token
+            .term("BETA", "b")        // special token
             .toScope();
     
     @Unary("DECIMAL")
     public Integer toInt(String opbody, String param) {
         return Integer.valueOf(param);
+    }
+
+    @Unary("BETA")
+    public String beta(String opbody, String param) {
+        return "b";
     }
     
     @Binary("+")
@@ -47,15 +73,60 @@ public class NanoParserErrorTest extends ReflectionActionHandler<Void> {
         return a * b;
     }
 
+    @Binary("|")
+    public String concat(String opbody, String a, String b) {
+        return a + b;
+    }
+
+    @Unary("strLen")
+    public Integer strLen(String opbody, String a) {
+        return a.length();
+    }
+
+    @Unary("boom")
+    public Integer boom(String opbody, String a) {
+        throw new SemanticExpection("Boom");
+    }
+
     @Parameters(name = "{0} -> {1}")
     public static List<Object[]> getExpressions() {
         List<Object[]> cases = new ArrayList<Object[]>();
-        addCase(cases, "+2", "Missing left argument for '+'")
+        addCase(cases, "+2", "Missing left hand side '+'")
         .sourceRef("+2", 
                    "^");
-        addCase(cases, "3 * (+2 - 1)", "Missing left argument for '+'")
+        addCase(cases, "3 * (+2 - 1)", "Missing left hand side '+'")
         .sourceRef("3 * (+2 - 1)", 
                    "     ^");
+        addCase(cases, "3 * ()", "Empty expression")
+        .sourceRef("3 * ()", 
+                   "     ^");
+        addCase(cases, "3 *", "Missing right hand side '*'")
+        .sourceRef("3 *", 
+                   "  ^");
+        addCase(cases, "3 + (2 *)", "Missing right hand side '*'")
+        .sourceRef("3 + (2 *)", 
+                   "       ^");
+        addCase(cases, "3 + ABC", "Cannot parse next token")
+        .sourceRef("3 + ABC", 
+                   "    ^");
+        addCase(cases, "3 + a", "No action for 'ALPHA' producing 'Integer'")
+        .sourceRef("3 + a", 
+                   "    ^");
+        addCase(cases, "a + a", "No action for 'ALPHA' producing 'Integer'")
+        .sourceRef("a + a", 
+                   "^");
+        addCase(cases, "a ? a", "No action for '?' producing 'Integer'")
+        .sourceRef("a ? a", 
+                   "  ^");
+        addCase(cases, "b | b", "No action for '|' producing 'Integer'")
+        .sourceRef("b | b", 
+                   "  ^");
+        addCase(cases, "strLen(1 + 1)", "No action for '+' producing 'String'")
+        .sourceRef("strLen(1 + 1)", 
+                   "         ^");
+        addCase(cases, "1 + boom(b | b)", "Boom")
+        .sourceRef("1 + boom(b | b)", 
+                   "    ^");
 
         return cases;
     }

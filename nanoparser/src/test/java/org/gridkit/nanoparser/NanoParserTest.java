@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Alexey Ragozin
+ * Copyright (C) 2016 Alexey Ragozin
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,10 +27,10 @@ public class NanoParserTest {
     public void test_basic_op_rank() {
         
         SyntaticScope scope = NanoGrammar.newParseTable()
-                .term("[A-Z]")
-                .skip("\\s")
-                .infixOp("+", "\\+")
-                .infixOp("*", "\\*").rank(2).toScope();
+                .term("~[A-Z]")
+                .skip("~\\s")
+                .infixOp("+", "+")
+                .infixOp("*", "*").rank(2).toScope();
         
         NanoParser<Void> parser = new NanoParser<Void>(new SimpleParser(), scope);
         
@@ -45,11 +45,11 @@ public class NanoParserTest {
     public void test_parents() {
         
         SyntaticScope scope = NanoGrammar.newParseTable()
-                .term("[A-Z]")
-                .skip("\\s")
-                .infixOp("+", "\\+")
-                .infixOp("*", "\\*").rank(2)
-                .enclosure("()", "\\(", "\\)")
+                .term("~[A-Z]")
+                .skip("~\\s")
+                .infixOp("+", "+")
+                .infixOp("*", "*").rank(2)
+                .enclosure("()", "(", ")")
                 .toScope();
         
         NanoParser<Void> parser = new NanoParser<Void>(new SimpleParser(), scope);
@@ -66,18 +66,18 @@ public class NanoParserTest {
     public void test_quited_sting() {
         
         SyntaticScope quoted = NanoGrammar.newParseTable()
-                .term("[^\\\\']+")
-                .term("ESCAPE", "\\\\.?")
+                .term("~[^\\\\']+")
+                .term("ESCAPE", "~\\\\.?")
                 .glueOp("CONCAT")
                 .toScope();
         
         SyntaticScope scope = NanoGrammar.newParseTable()
-                .term("[A-Z]")
-                .skip("\\s")
-                .infixOp("+", "\\+")
-                .infixOp("*", "\\*").rank(2)
-                .enclosure("()", "\\(", "\\)")
-                .enclosure("", "\\'", "\\'").scope(quoted)
+                .term("~[A-Z]")
+                .skip("~\\s")
+                .infixOp("+", "+")
+                .infixOp("*", "*").rank(2)
+                .enclosure("()", "(", ")")
+                .enclosure("", "\'", "\'").scope(quoted)
                 .toScope();
         
         NanoParser<Void> parser = new NanoParser<Void>(new SimpleParser(), scope);
@@ -93,27 +93,27 @@ public class NanoParserTest {
     public void test_function_call() {
         
         SyntaticScope quoted = NanoGrammar.newParseTable()
-                .term("[^\\\\']+")
-                .term("ESCAPE", "\\\\.?")
+                .term("~[^\\\\']+")
+                .term("ESCAPE", "~\\\\.?")
                 .glueOp("CONCAT")
                 .toScope();
         
         SyntaticScope scope = NanoGrammar.newParseTable()
-                .term("[A-Z]")
-                .skip("\\s")
-                .infixOp("+", "\\+")
-                .infixOp("*", "\\*").rank(2)
-                .enclosure("()", "\\(", "\\)")
-                .enclosure("\\'", "\\'").scope(quoted)
+                .term("~[A-Z]")
+                .skip("~\\s")
+                .infixOp("+", "+")
+                .infixOp("*", "*").rank(2)
+                .enclosure("()", "(", ")")
+                .enclosure("\'", "\'").scope(quoted)
                 .toLazyScope();
 
         SyntaticScope functionArgs = NanoGrammar.newParseTable()
-                .clone(scope)
+                .include(scope)
                 .infixOp("COMMA", ",").rank(0) // reduced rank
                 .toScope();
         
         NanoGrammar.extendTable(scope)
-                .enclosure("CALL", "[A-Za-z]+\\(", "\\)").scope(functionArgs);
+                .enclosure("CALL", "~[A-Za-z]+\\(", ")").scope(functionArgs);
         
         NanoParser<Void> parser = new NanoParser<Void>(new SimpleParser(), scope);
         
@@ -124,7 +124,13 @@ public class NanoParserTest {
     }
 
     private void assertParseResult(NanoParser<Void> parser, String source, String results) {
-        Assertions.assertThat(parser.parse(null, String.class, source)).isEqualTo(results);
+        try {
+            Assertions.assertThat(parser.parse(null, String.class, source)).isEqualTo(results);
+        }
+        catch(ParserException e) {
+            System.out.println(e.formatVerboseErrorMessage());
+            throw e;
+        }
     }
 
     public static class SimpleParser extends ReflectionActionHandler<Void> {

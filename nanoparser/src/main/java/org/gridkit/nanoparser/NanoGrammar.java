@@ -23,15 +23,17 @@ public class NanoGrammar {
     /**
      * @return Builder for new {@link SyntaticScope}
      */
-    public static ParserBuilder newParseTable() {
+    @SuppressWarnings("unchecked")
+    public static ParserBuilder<ParserBuilderTop<?>> newParseTable() {
         return new Builder();
     }
 
     /**
-     * Accepts {@link SyntaticScope} created by {@link ParserBuilderNext#toLazyScope()} method.
+     * Accepts {@link SyntaticScope} created by {@link ParserBuilderTop#toLazyScope()} method.
      * Allow adding additional parse rules, modifying previously created table instance.
      */
-    public static ParserBuilder extendTable(SyntaticScope scope) {
+    @SuppressWarnings("unchecked")
+    public static ParserBuilder<ParserBuilderTop<?>> extendTable(SyntaticScope scope) {
         if (scope instanceof LazyScope) {
             if (((LazyScope)scope).scope != null) {
                 throw new IllegalStateException("Scope is already in use, cannot extend");
@@ -43,70 +45,81 @@ public class NanoGrammar {
         }
     }
     
-    public interface ParserBuilder {
+    public interface ParserBuilder<T extends ParserBuilder<?>> {
         
-        public ParserBuilderNext clone(SyntaticScope scope);
+        public T include(SyntaticScope scope);
 
-        public TermBuilder term(String pattern);
+        public TermBuilder<T> term(String pattern);
 
-        public TermBuilder term(String opID, String pattern);
+        public TermBuilder<T> term(String opID, String pattern);
 
-        public OpInfixBuilder infixOp(String opID, String pattern);
+        public OpInfixBuilder<T> infixOp(String opID, String pattern);
 
-        public OpInfixBuilder infixOrPrefixOp(String opID, String pattern);
+        public OpInfixBuilder<T> infixOp(String opIDandPattern);
 
-        public OpPrefixBuilder perfixOp(String opID, String pattern);
+        public OpInfixBuilder<T> infixOrPrefixOp(String opID, String pattern);
+
+        public OpInfixBuilder<T> infixOrPrefixOp(String opIDandPattern);
+
+        public OpPrefixBuilder<T> perfixOp(String opID, String pattern);
+
+        public OpPrefixBuilder<T> perfixOp(String opIDandPattern);
 
         /**
          * Brackets, parenthesis, braces, function calls, etc 
          * @return
          */
-        public OpEnclosureBuilder enclosure(String opID, String openPattern, String closePattern);
+        public OpEnclosureBuilder<T> enclosure(String opID, String openPattern, String closePattern);
 
-        public OpEnclosureBuilder enclosure(String openPattern, String closePattern);
+        public OpEnclosureBuilder<T> enclosure(String openPattern, String closePattern);
         
         /**
          * This operator would be applied implicitly if stream
          * contains two consecutive terms. 
          */
-        public OpInfixBuilder glueOp(String opID);
+        public OpInfixBuilder<T> glueOp(String opID);
 
         /**
          * Tokens would be ignored
          */
-        public OpInfixBuilder skip(String pattern);
+        public OpInfixBuilder<T> skip(String pattern);
         
     }
     
-    public interface ParserBuilderNext extends ParserBuilder {
+    public interface ParserBuilderTop<T extends ParserBuilder<?>> extends ParserBuilder<T> {
         
         public SyntaticScope toScope();
 
         public SyntaticScope toLazyScope();
     }
     
-    public interface OpInfixBuilder extends ParserBuilderNext {
+    public interface OpInfixBuilder<T extends ParserBuilder<?>> extends ParserBuilderTop<T> {
         
-        public OpInfixBuilder rank(int id);
+        public OpInfixBuilder<T> rank(int id);
 
-        public OpInfixBuilder rightAssoc();
+        public OpInfixBuilder<T> rightAssoc();
 
-        public OpInfixBuilder leftAssoc();
+        public OpInfixBuilder<T> leftAssoc();
     }
 
-    public interface OpPrefixBuilder extends ParserBuilderNext {
+    public interface OpPrefixBuilder<T extends ParserBuilder<?>> extends ParserBuilderTop<T> {
         
-        public ParserBuilderNext rank(int id);
+        public ParserBuilderTop<T> rank(int id);
     }
 
-    public interface TermBuilder extends ParserBuilderNext {
+    public interface TermBuilder<T extends ParserBuilder<?>> extends ParserBuilderTop<T> {
     }
 
-    public interface OpEnclosureBuilder extends ParserBuilderNext {
+    public interface OpEnclosureBuilder<T extends ParserBuilder<?>> extends ParserBuilderTop<T> {
         
-        public ParserBuilderNext scope(SyntaticScope scope);
-    }
+        public ParserBuilderTop<T> scope(SyntaticScope scope);
+        
+        public OpEnclosureBuilder<T> nestedInfixOp(String opIDandPattern);
 
+        public OpEnclosureBuilder<T> nestedInfixOp(String opID, String pattern);
+
+    }
+    
     public static interface SyntaticScope {
         
         public void apply(ScopeBuilder builder);
@@ -170,6 +183,7 @@ public class NanoGrammar {
         }
     }
     
+    @SuppressWarnings("rawtypes")
     private static class Builder implements ParserBuilder, OpEnclosureBuilder, OpInfixBuilder, OpPrefixBuilder, TermBuilder {
         
         List<OpHolder> holders = new ArrayList<OpHolder>();
@@ -182,8 +196,14 @@ public class NanoGrammar {
         int rank = 1;
         boolean rightAssoc;
         SyntaticScope scope;
+
+        Builder nested;
         
         private void push() {
+            if (nested != null) {
+                nested.toScope(); // finalize
+                nested = null;                
+            }
             if (holderType != null) {
                 if (holderType == OperatorHolder.class) {
                     OperatorInfo opi = new OperatorInfo(id, type, rank, !rightAssoc);
@@ -217,7 +237,7 @@ public class NanoGrammar {
         }
 
         @Override
-        public ParserBuilderNext clone(SyntaticScope scope) {
+        public ParserBuilderTop include(SyntaticScope scope) {
             push();
             holders.add(new CloneHolder(scope));
             return this;
@@ -244,6 +264,11 @@ public class NanoGrammar {
         }
 
         @Override
+        public OpInfixBuilder infixOp(String opIDandPattern) {
+            return infixOp(opIDandPattern, opIDandPattern);
+        }
+
+        @Override
         public OpInfixBuilder infixOp(String opID, String pattern) {
             push();
             this.id = opID;
@@ -251,6 +276,11 @@ public class NanoGrammar {
             this.pattern = pattern;
             this.holderType = OperatorHolder.class;
             return this;
+        }
+
+        @Override
+        public OpInfixBuilder infixOrPrefixOp(String opIDandPattern) {
+            return infixOrPrefixOp(opIDandPattern, opIDandPattern);
         }
 
         @Override
@@ -263,6 +293,11 @@ public class NanoGrammar {
             return this;
         }
 
+        @Override
+        public OpPrefixBuilder perfixOp(String opIDandPattern) {
+            return perfixOp(opIDandPattern, opIDandPattern);
+        }
+        
         @Override
         public OpPrefixBuilder perfixOp(String opID, String pattern) {
             push();
@@ -334,6 +369,22 @@ public class NanoGrammar {
         @Override
         public OpInfixBuilder scope(SyntaticScope scope) {
             this.scope = scope;
+            return this;
+        }
+
+        @Override
+        public OpEnclosureBuilder nestedInfixOp(String opIDandPattern) {
+            return nestedInfixOp(opIDandPattern, opIDandPattern);
+        }
+        
+        @Override
+        public OpEnclosureBuilder nestedInfixOp(String opID, String pattern) {
+            if (nested == null) {
+                nested = new Builder();
+                nested.include(toLazyScope());
+                this.scope = nested.toLazyScope();
+            }
+            nested.infixOp(opID, pattern);
             return this;
         }
         
