@@ -19,8 +19,8 @@ public class SimpleArithmeticParser extends ReflectionActionHandler<Void> {
             .infixOrPrefixOp("-", "-")
             .infixOp("*", "*").rank(2)
             .enclosure("(", ")")
-            .enclosure("max", "max(", ")") // hard coded function
-            .nestedInfixOp(",") // comma would be accepted only with "max(...)"
+            .enclosure("max", "~max\\(", ")") // hard coded function
+            .nestedInfixOp(",").rank(0) // comma would be accepted only with "max(...)"
             .toScope();
     
     @Unary("DECIMAL")
@@ -92,6 +92,7 @@ public class SimpleArithmeticParser extends ReflectionActionHandler<Void> {
             Assert.assertEquals(Integer.valueOf(3), parser.parse(null, Integer.class, "max(2, 3)"));
             Assert.assertEquals(Integer.valueOf(6), parser.parse(null, Integer.class, "max(2, 2 * 3, 3)"));
             Assert.assertEquals(Integer.valueOf(4), parser.parse(null, Integer.class, "max(2, 2 * 3, 3) - 2"));
+            Assert.assertEquals(Integer.valueOf(10), parser.parse(null, Integer.class, "max(2, 2 + 3, 3) * 2"));
         }
         catch(ParserException e) {
             System.out.println(e.formatVerboseErrorMessage());

@@ -114,10 +114,17 @@ public class NanoGrammar {
         
         public ParserBuilderTop<T> scope(SyntaticScope scope);
         
-        public OpEnclosureBuilder<T> nestedInfixOp(String opIDandPattern);
+        public OpEnclosureBuilder<T> implicitPrefixOp(String opID);
 
-        public OpEnclosureBuilder<T> nestedInfixOp(String opID, String pattern);
+        public OpEnclosureWithRankBuilder<T> nestedInfixOp(String opIDandPattern);
 
+        public OpEnclosureWithRankBuilder<T> nestedInfixOp(String opID, String pattern);
+
+    }
+
+    public interface OpEnclosureWithRankBuilder<T extends ParserBuilder<?>> extends OpEnclosureBuilder<T> {
+        
+        public OpEnclosureBuilder<T> rank(int rank);
     }
     
     public static interface SyntaticScope {
@@ -133,7 +140,7 @@ public class NanoGrammar {
 
         public void addGlueOperator(OperatorInfo op);
 
-        public void addEnclosing(String pattern, OperatorInfo op, SyntaticScope nestedScope);
+        public void addEnclosing(String pattern, OperatorInfo op, OperatorInfo prefixOp, SyntaticScope nestedScope);
 
         public void addScopeEscapeToken(String pattern);
 
@@ -184,7 +191,7 @@ public class NanoGrammar {
     }
     
     @SuppressWarnings("rawtypes")
-    private static class Builder implements ParserBuilder, OpEnclosureBuilder, OpInfixBuilder, OpPrefixBuilder, TermBuilder {
+    private static class Builder implements ParserBuilder, OpEnclosureWithRankBuilder, OpInfixBuilder, OpPrefixBuilder, TermBuilder {
         
         List<OpHolder> holders = new ArrayList<OpHolder>();
         Class<?> holderType;
@@ -192,6 +199,7 @@ public class NanoGrammar {
         String id;
         String pattern;
         String pattern2;
+        String prefixOp;
         OpType type;
         int rank = 1;
         boolean rightAssoc;
@@ -219,7 +227,8 @@ public class NanoGrammar {
                 }
                 else if (holderType == EnclosingHolder.class) {
                     OperatorInfo opi = new OperatorInfo(id, type, rank, !rightAssoc);
-                    holders.add(new EnclosingHolder(opi, pattern, pattern2, scope));                    
+                    OperatorInfo pop = prefixOp == null ? null : new OperatorInfo(prefixOp, OpType.INFIX, 1000, true); 
+                    holders.add(new EnclosingHolder(opi, pattern, pattern2, scope, pop));                    
                 }
                 else if (holderType == SkipHolder.class) {
                     holders.add(new SkipHolder(pattern));                    
@@ -229,6 +238,7 @@ public class NanoGrammar {
                 id = null;
                 pattern = null; 
                 pattern2 = null;
+                prefixOp = null;
                 type = null;
                 rank = 1;
                 rightAssoc = false;
@@ -361,8 +371,13 @@ public class NanoGrammar {
             return this;
         }
         
-        public OpInfixBuilder rank(int id) {
-            rank = id;
+        public Builder rank(int rank) {
+            if (nested != null) {
+                nested.rank(rank);
+            }
+            else {
+                this.rank = rank;
+            }
             return this;
         };
         
@@ -373,18 +388,27 @@ public class NanoGrammar {
         }
 
         @Override
-        public OpEnclosureBuilder nestedInfixOp(String opIDandPattern) {
+        public OpEnclosureWithRankBuilder nestedInfixOp(String opIDandPattern) {
             return nestedInfixOp(opIDandPattern, opIDandPattern);
         }
         
         @Override
-        public OpEnclosureBuilder nestedInfixOp(String opID, String pattern) {
+        public OpEnclosureWithRankBuilder nestedInfixOp(String opID, String pattern) {
             if (nested == null) {
                 nested = new Builder();
                 nested.include(toLazyScope());
                 this.scope = nested.toLazyScope();
             }
             nested.infixOp(opID, pattern);
+            return this;
+        }
+        
+        @Override
+        public OpEnclosureBuilder implicitPrefixOp(String opID) {
+            if (prefixOp != null) {
+                throw new IllegalStateException("At most on implicit operator is allowed");
+            }
+            prefixOp = opID;
             return this;
         }
         
@@ -471,16 +495,18 @@ public class NanoGrammar {
         String openPattern;
         String closePattern;
         SyntaticScope nested;
+        OperatorInfo prefixOp;
 
-        public EnclosingHolder(OperatorInfo opInfo, String openPattern, String closePattern, SyntaticScope nested) {
+        public EnclosingHolder(OperatorInfo opInfo, String openPattern, String closePattern, SyntaticScope nested, OperatorInfo prefixOp) {
             this.opInfo = opInfo;
             this.openPattern = openPattern;
             this.closePattern = closePattern;
             this.nested = nested;
+            this.prefixOp = prefixOp;
         }
 
         public void apply(ScopeBuilder builder) {
-            builder.addEnclosing(openPattern, opInfo, new NestedScope(nested, closePattern));
+            builder.addEnclosing(openPattern, opInfo, prefixOp, new NestedScope(nested, closePattern));
         }
     }
 

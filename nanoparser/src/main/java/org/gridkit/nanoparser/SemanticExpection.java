@@ -27,6 +27,8 @@ public class SemanticExpection extends RuntimeException {
 
     private static final long serialVersionUID = 20160507L;
 
+    private Token token;
+    
     public SemanticExpection() {
         super();
     }
@@ -41,5 +43,14 @@ public class SemanticExpection extends RuntimeException {
 
     public SemanticExpection(Throwable cause) {
         super(cause);
+    }
+    
+    public SemanticExpection withToken(Token tkn) {
+        this.token = tkn;
+        return this;
+    }
+    
+    public Token getToken() {
+        return token;
     }
 }

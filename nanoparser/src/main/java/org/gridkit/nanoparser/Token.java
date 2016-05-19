@@ -15,23 +15,36 @@
  */
 package org.gridkit.nanoparser;
 
-public class NanoParseException extends RuntimeException {
+public interface Token {
 
-    private static final long serialVersionUID = 20160508L;
+    public String tokenBody();
 
-    public NanoParseException() {
-        super();
-    }
+    public CharSequence source();
+    
+    public int line();
+    
+    public int pos();
+    
+    public int offset();
+    
+    /**
+     * Portion of source with reference to token body.
+     * 
+     * <pre>
+     * ... 1*(2+3)
+     *         ^
+     * </pre>
+     */
+    public String excerpt();    
 
-    public NanoParseException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public NanoParseException(String message) {
-        super(message);
-    }
-
-    public NanoParseException(Throwable cause) {
-        super(cause);
-    }
+    /**
+     * Portion of source with reference to token body.
+     * 
+     * <pre>
+     * ... 1*(2+3)
+     *         ^
+     * </pre>
+     */
+    public String excerpt(int excerptLengthLimit);    
+    
 }

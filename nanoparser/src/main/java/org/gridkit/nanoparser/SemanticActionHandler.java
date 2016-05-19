@@ -15,17 +15,21 @@
  */
 package org.gridkit.nanoparser;
 
-import java.util.List;
-
 public interface SemanticActionHandler<C> {
 
-    public <R> ActionHandler<C, R, Object, Void> lookupUnary(String opID, Class<R> returnType);
+    public <R> ActionHandler<C, R, Object, Void> lookupTerm(String opID, Class<R> returnType);
 
-    public <R> ActionHandler<C, R, Object, Object> lookupBinary(String opID, Class<R> returnType);
+    public <R, A> ActionHandler<C, R, A, Void> lookupUnary(String opID, Class<R> returnType, Class<A> argA);
 
-    public List<Class<?>> lookupConvertions(Class<?> targetClass);
-    
+    public <R, A, B> ActionHandler<C, R, A, B> lookupBinary(String opID, Class<R> returnType, Class<A> argA, Class<B> argB);
+
     public <R, T> ActionHandler<C, R, T, Void> lookupConvertor(Class<?> sourceClass, Class<R> returnType);
+
+    public Class<?>[] enumConvertions(Class<?> targetClass);
+
+    public Class<?>[][] enumUnaries(String opId);
+
+    public Class<?>[][] enumBinaries(String opId);
     
     public interface ActionHandler<C, R, A, B> {
         
@@ -33,6 +37,6 @@ public interface SemanticActionHandler<C> {
         
         public Class<B> rightType();
         
-        public R apply(C parserContext, String operatorBody, A left, B right);
+        public R apply(C parserContext, Token token, A left, B right);
     }
 }

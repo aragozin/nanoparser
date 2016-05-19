@@ -19,43 +19,24 @@ public class ParserException extends RuntimeException {
 
     private static final long serialVersionUID = 20151220L;
     
-    private CharSequence parseText;
-    private int line;
-    private int position;
-    private int offset;
+    private Token token;
     
-    public ParserException(CharSequence parseText, int offset, int line, int position, String message) {
+    public ParserException(Token token, String message) {
         super(message);
-        this.parseText = parseText;
-        this.offset = offset;
-        this.line = line;
-        this.position = position;
+        this.token = token;
     }
 
-    public ParserException(CharSequence parseText, int offset, int line, int position, String message, Exception e) {
+    public ParserException(Token token, String message, Exception e) {
         super(message, e);
-        this.parseText = parseText;
-        this.offset = offset;
+        this.token = token;
     }
     
-    public CharSequence getParseText() {
-        return parseText;
-    }
-
-    public int getLine() {
-        return line;
-    }
-
-    public int getPosition() {
-        return position;
-    }
-    
-    public int getOffset() {
-        return offset;
+    public Token getToken() {
+        return token;
     }
     
     public String formatVerboseErrorMessage() {
-        return "Error: " + getMessage() + "\nLine: " + (line + 1) + " Position: " + position + "\n" + formatSourceReference();
+        return "Error: " + getMessage() + "\nLine: " + token.line() + " Position: " + token.pos() + "\n" + token.excerpt(60);
     }
     
     /**
@@ -68,26 +49,29 @@ public class ParserException extends RuntimeException {
      * 
      * @return
      */
-    public String formatSourceReference() {
+    public static String formatTokenExcertp(Token tkn, int lengthLimit) {
         StringBuilder sb = new StringBuilder();
-        int ls = offset;        
+        CharSequence parseText = tkn.source();
+        int ls = tkn.offset();        
         while(ls >= 0) {
             if (parseText.charAt(ls) != '\n') {
                 --ls;
             }
         }
-        int back = offset - (ls + 1);
+        int backLimit = lengthLimit / 2;
+        int back = tkn.offset() - (ls + 1);
         boolean skipStart = false;
-        if (back > 32) {
-            back = 32;
+        if (back > backLimit) {
+            back = backLimit - 4;
             skipStart = true;
             sb.append("... ");
         }
-        for(int n = offset - back; n < parseText.length(); ++n) {
+        for(int n = tkn.offset() - back; n < parseText.length(); ++n) {
             if (parseText.charAt(n) == '\n') {
                 break;
             }
-            if (n - offset > 16) {
+            if (sb.length() >= lengthLimit) {
+                sb.setLength(sb.length() - 3);
                 sb.append("...");
                 break;
             }

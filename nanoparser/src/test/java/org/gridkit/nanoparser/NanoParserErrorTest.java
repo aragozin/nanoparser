@@ -127,6 +127,9 @@ public class NanoParserErrorTest extends ReflectionActionHandler<Void> {
         addCase(cases, "1 + boom(b | b)", "Boom")
         .sourceRef("1 + boom(b | b)", 
                    "    ^");
+        addCase(cases, "1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + boom(b | b) + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 2", "Boom")
+        .sourceRef("... + 1 + 1 + 1 + 1 + 1 + 1 + boom(b | b) + 1 + 1 + 1 + 1...", 
+                   "                              ^");
 
         return cases;
     }
@@ -168,7 +171,7 @@ public class NanoParserErrorTest extends ReflectionActionHandler<Void> {
         catch(ParserException e) {
             Assert.assertEquals(errorMessage, e.getMessage());
             if (sourceReference != null) {
-                Assert.assertEquals(sourceReference, e.formatSourceReference());
+                Assert.assertEquals(sourceReference, e.getToken().excerpt());
             }
         }
     }

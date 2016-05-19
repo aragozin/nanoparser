@@ -120,6 +120,7 @@ public class NanoParserTest {
         assertParseResult(parser, "A+x(C,D,E)", "[A+x[C, D, E]]");
         assertParseResult(parser, "x(A)+B", "[x[A]+B]");
         assertParseResult(parser, "bcd('1 2 3',D + E, F*G) + X", "[bcd[1 2 3, [D+E], [F*G]]+X]");
+        assertParseResult(parser, "bcd('1 \\2 \\'3',D + E, F*G) + X", "[bcd[1 2 '3, [D+E], [F*G]]+X]");
         assertParseResult(parser, "bcd(xyz('1', sdf(X)))", "bcd[xyz[1, sdf[X]]]");
     }
 
@@ -136,37 +137,37 @@ public class NanoParserTest {
     public static class SimpleParser extends ReflectionActionHandler<Void> {
         
         @Binary("+")
-        public String strPlus(String op, String left, String right) {
+        public String strPlus(String left, String right) {
             return "[" +  left + "+" + right + "]";
         }
 
         @Binary("*")
-        public String strMult(String op, String left, String right) {
+        public String strMult(String left, String right) {
             return "[" +  left + "*" + right + "]";
         }
 
         @Unary("()")
-        public String asIs(String op, String param) {
+        public String asIs(String param) {
             return param;
         }
 
-        @Unary("ESCAPE")
-        public String escape(String op, String param) {
-            return op.substring(1);
+        @Term("ESCAPE")
+        public String escape(String token) {
+            return token.substring(1);
         }
 
         @Unary("QUOTE")
-        public String quote(String op, String param) {
+        public String quote(String param) {
             return param;
         }
 
         @Binary("CONCAT")
-        public String concat(String op, String a, String b) {
+        public String concat(String a, String b) {
             return a + b;
         }
 
         @Binary("COMMA")
-        public String[] join(String opName, String[] head, String tail) {
+        public String[] join(String[] head, String tail) {
             String[] nhead = Arrays.copyOf(head, head.length + 1);
             nhead[head.length] = tail;
             return nhead;
@@ -178,7 +179,8 @@ public class NanoParserTest {
         }
 
         @Unary("CALL")
-        public String call(String op, String[] args) {
+        public String call(@Source Token tkn, String[] args) {
+            String op = tkn.tokenBody();
             return op.substring(0, op.length() - 1) + Arrays.toString(args);            
         }
     }

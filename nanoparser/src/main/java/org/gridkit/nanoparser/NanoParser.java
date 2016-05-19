@@ -56,14 +56,14 @@ public class NanoParser<C> {
                 continue;
             }
             if (table.escapeToken != null) {
-                Token tkn = stream.matchToken(table.escapeToken);
+                PToken tkn = stream.matchToken(table.escapeToken);
                 if (tkn != null) {
                     return parser.collapse(tkn);
                 }
             }
-            Token prev = stream.emptyToken();
+            PToken prev = stream.emptyToken();
             for(ParseTableElement pat: table.table) {
-                Token tkn = stream.matchToken(pat.matcher);
+                PToken tkn = stream.matchToken(pat.matcher);
                 if (tkn != null) {
                     if (pat.term) {
                         if (!parser.isEmpty() && parser.last().rank < 0 && table.glueToken != null) {
@@ -81,6 +81,13 @@ public class NanoParser<C> {
                         parser.pushToken(node);
                     }
                     else if (pat.enclosing) {
+                        if (pat.prefixOp != null) {
+                            ParseNode prefOp = new ParseNode();
+                            prefOp.op = pat.prefixOp;
+                            prefOp.token = tkn;
+                            prefOp.rank = prefOp.op.rank();
+                            parser.pushToken(prefOp);
+                        }
                         ParseNode node = new ParseNode();
                         node.op = pat.operatorInfo;
                         node.token = tkn;
@@ -147,11 +154,11 @@ public class NanoParser<C> {
         }
     }
 
-    private <T> Object convertToken(C parserContext, Class<T> type, String id, Token token) {
+    private <T> Object convertToken(C parserContext, Class<T> type, String id, PToken token) {
         if (id.length() == 0 && type != String.class) {
             return new ConversionError(token, type, String.class); 
         }
-        ActionHandler<C, T, Object, Void> h = actionDispatcher.lookupUnary(id, type);
+        ActionHandler<C, T, Object, Void> h = actionDispatcher.lookupTerm(id, type);
         if (h == null) {
             return new OperationError(token, type, id); 
         }
@@ -160,46 +167,226 @@ public class NanoParser<C> {
         }
     }
 
-    private <T> Object convertUnary(C parserContext, Class<T> type, String id, Token token, ParseNode node) {
-        ActionHandler<C, T, Object, Void> h = actionDispatcher.lookupUnary(id, type);
-        if (h == null) {
+    @SuppressWarnings("unchecked")
+    private <T> Object convertUnary(C parserContext, Class<T> type, String id, PToken token, ParseNode node) {
+        Class<?>[][] nops = actionDispatcher.enumUnaries(id);
+        if (nops == null) {
             return new OperationError(token, type, id); 
         }
+
+        Error fisrtError = null;
+        
+        // Phase 1: no conversion
+        for(Class<?>[] sig: nops) {
+            Class<T> rtype = (Class<T>)sig[0];
+            Class<Object> atype = (Class<Object>) sig[1];
+            if (type.isAssignableFrom(rtype)) {
+                Object v = convertTree(parserContext, atype, node);
+                if (v instanceof SematicError) {
+                    return v;
+                }
+                else if (v instanceof TypeError) {
+                    if (fisrtError == null) {
+                        fisrtError = (Error) v;
+                    }
+                    continue;
+                }
+                else {
+                    ActionHandler<C, T, Object, Void> h = actionDispatcher.lookupUnary(id, rtype, atype);
+                    return callUnary(parserContext, h, token, v);
+                }                
+            }
+        }
+
+        // Phase 2: conversion allowed
+        for(Class<?>[] sig: nops) {
+            Class<T> rtype = (Class<T>)sig[0];
+            Class<Object> atype = (Class<Object>) sig[1];
+            if (type.isAssignableFrom(rtype)) {
+                Object v = convertAdaptingTree(parserContext, atype, node);
+                if (v instanceof SematicError) {
+                    return v;
+                }
+                else if (v instanceof TypeError) {
+                    if (fisrtError == null) {
+                        fisrtError = (Error) v;
+                    }
+                    continue;
+                }
+                else {
+                    ActionHandler<C, T, Object, Void> h = actionDispatcher.lookupUnary(id, rtype, atype);
+                    return callUnary(parserContext, h, token, v);
+                }                
+            }
+        }
+        
+        // unable to dispatch
+        if (fisrtError != null) {
+            return fisrtError;
+        }
         else {
-            Object v = convertAdaptingTree(parserContext, h.leftType(), node);
-            if (v instanceof Error) {
-                return v;
-            }
-            else {
-                return callUnary(parserContext, h, token, v);
-            }
+            return new OperationError(token, type, id);
         }
     }
 
-    private <T> Object convertBinary(C parserContext, Class<T> type, String id, Token token, ParseNode node1, ParseNode node2) {
-        ActionHandler<C, T, Object, Object> h = actionDispatcher.lookupBinary(id, type);
-        if (h == null) {
+    @SuppressWarnings("unchecked")
+    private <T> Object convertBinary(C parserContext, Class<T> type, String id, PToken token, ParseNode node1, ParseNode node2) {
+        Class<?>[][] nops = actionDispatcher.enumBinaries(id);
+        if (nops == null) {
             return new OperationError(token, type, id); 
         }
-        else {
-            Object v1 = convertAdaptingTree(parserContext, h.leftType(), node1);
-            if (v1 instanceof Error) {
-                return v1;
-            }
 
-            Object v2 = convertAdaptingTree(parserContext, h.rightType(), node2);
-            if (v2 instanceof Error) {
-                return v2;
+        Error fisrtError = null;
+        
+        // Phase 1: no conversion
+        for(Class<?>[] sig: nops) {
+            Class<T> rtype = (Class<T>)sig[0];
+            Class<Object> atype = (Class<Object>) sig[1];
+            Class<Object> btype = (Class<Object>) sig[2];
+            if (type.isAssignableFrom(rtype)) {
+                Object a = convertTree(parserContext, atype, node1);
+                if (a instanceof SematicError) {
+                    return a;
+                }
+                else if (a instanceof TypeError) {
+                    if (fisrtError == null) {
+                        fisrtError = (Error) a;
+                    }
+                    continue;
+                }
+
+                Object b = convertTree(parserContext, btype, node2);
+                if (b instanceof SematicError) {
+                    return b;
+                }
+                else if (b instanceof TypeError) {
+                    if (fisrtError == null) {
+                        fisrtError = (Error) b;
+                    }
+                    continue;
+                }
+
+                ActionHandler<C, T, Object, Object> h = actionDispatcher.lookupBinary(id, rtype, atype, btype);
+                if (h == null) {
+                    throw new RuntimeException("No action [" + id + "] " + atype.getSimpleName() + ", " + btype.getSimpleName());
+                }
+                return callBinary(parserContext, h, token, a, b);
             }
-            
-            return callBinary(parserContext, h, token, v1, v2);
+        }
+
+        // Phase 2: left argument conversion is allowed
+        for(Class<?>[] sig: nops) {
+            Class<T> rtype = (Class<T>)sig[0];
+            Class<Object> atype = (Class<Object>) sig[1];
+            Class<Object> btype = (Class<Object>) sig[2];
+            if (type.isAssignableFrom(rtype)) {
+                Object a = convertAdaptingTree(parserContext, atype, node1);
+                if (a instanceof SematicError) {
+                    return a;
+                }
+                else if (a instanceof TypeError) {
+                    if (fisrtError == null) {
+                        fisrtError = (Error) a;
+                    }
+                    continue;
+                }
+
+                Object b = convertTree(parserContext, btype, node2);
+                if (b instanceof SematicError) {
+                    return b;
+                }
+                else if (b instanceof TypeError) {
+                    if (fisrtError == null) {
+                        fisrtError = (Error) b;
+                    }
+                    continue;
+                }
+
+                ActionHandler<C, T, Object, Object> h = actionDispatcher.lookupBinary(id, rtype, atype, btype);
+                return callBinary(parserContext, h, token, a, b);
+            }
+        }
+
+        // Phase 3: right argument conversion is allowed
+        for(Class<?>[] sig: nops) {
+            Class<T> rtype = (Class<T>)sig[0];
+            Class<Object> atype = (Class<Object>) sig[1];
+            Class<Object> btype = (Class<Object>) sig[2];
+            if (type.isAssignableFrom(rtype)) {
+                Object a = convertTree(parserContext, atype, node1);
+                if (a instanceof SematicError) {
+                    return a;
+                }
+                else if (a instanceof TypeError) {
+                    if (fisrtError == null) {
+                        fisrtError = (Error) a;
+                    }
+                    continue;
+                }
+
+                Object b = convertAdaptingTree(parserContext, btype, node2);
+                if (b instanceof SematicError) {
+                    return b;
+                }
+                else if (b instanceof TypeError) {
+                    if (fisrtError == null) {
+                        fisrtError = (Error) b;
+                    }
+                    continue;
+                }
+
+                ActionHandler<C, T, Object, Object> h = actionDispatcher.lookupBinary(id, rtype, atype, btype);
+                return callBinary(parserContext, h, token, a, b);
+            }
+        }
+
+        
+        // Phase 4: both arguments conversion is allowed
+        for(Class<?>[] sig: nops) {
+            Class<T> rtype = (Class<T>)sig[0];
+            Class<Object> atype = (Class<Object>) sig[1];
+            Class<Object> btype = (Class<Object>) sig[2];
+            if (type.isAssignableFrom(rtype)) {
+                Object a = convertAdaptingTree(parserContext, atype, node1);
+                if (a instanceof SematicError) {
+                    return a;
+                }
+                else if (a instanceof TypeError) {
+                    if (fisrtError == null) {
+                        fisrtError = (Error) a;
+                    }
+                    continue;
+                }
+
+                Object b = convertAdaptingTree(parserContext, btype, node2);
+                if (b instanceof SematicError) {
+                    return b;
+                }
+                else if (b instanceof TypeError) {
+                    if (fisrtError == null) {
+                        fisrtError = (Error) b;
+                    }
+                    continue;
+                }
+
+                ActionHandler<C, T, Object, Object> h = actionDispatcher.lookupBinary(id, rtype, atype, btype);
+                return callBinary(parserContext, h, token, a, b);
+            }
+        }
+        
+        // unable to dispatch
+        if (fisrtError != null) {
+            return fisrtError;
+        }
+        else {
+            return new OperationError(token, type, id);
         }
     }
 
     private <T> Object convertAdaptingTree(C parserContext, Class<T> type, ParseNode node) {
         Object v = convertTree(parserContext, type, node);
         if (v instanceof Error) {
-            for(Class<?> altType: actionDispatcher.lookupConvertions(type)) {
+            for(Class<?> altType: actionDispatcher.enumConvertions(type)) {
                 Object v1 = convertTree(parserContext, altType, node);
                 if (v1 instanceof Error) {
                     continue;
@@ -213,9 +400,9 @@ public class NanoParser<C> {
     }
 
     @SuppressWarnings("unchecked")
-    protected <T> T callUnary(C parserContext, ActionHandler<C, T, Object, Void> h, Token token, Object param) {
+    protected <T> T callUnary(C parserContext, ActionHandler<C, T, Object, Void> h, PToken token, Object param) {
         try {
-            return h.apply(parserContext, token.body, param, null);
+            return h.apply(parserContext, token, param, null);
         }
         catch(SemanticExpection e) {
             return (T)new SematicError(token, e.getMessage());
@@ -223,9 +410,9 @@ public class NanoParser<C> {
     }
 
     @SuppressWarnings("unchecked")
-    protected <T> T callBinary(C parserContext, ActionHandler<C, T, Object, Object> h, Token token, Object v1, Object v2) {
+    protected <T> T callBinary(C parserContext, ActionHandler<C, T, Object, Object> h, PToken token, Object v1, Object v2) {
         try {
-            return h.apply(parserContext, token.body, v1, v2);
+            return h.apply(parserContext, token, v1, v2);
         }
         catch(SemanticExpection e) {
             return (T)new SematicError(token, e.getMessage());
@@ -233,45 +420,49 @@ public class NanoParser<C> {
     }
 
     private static abstract class Error {
-        Token token;
+        PToken token;
         String message;
+    }
+    
+    private static abstract class TypeError extends Error {
+        
     }
 
     private static class SematicError extends Error {
         
-        public SematicError(Token token, String message) {
+        public SematicError(PToken token, String message) {
             this.token = token;
             this.message = message;
                     
         }
     }
     
-    private static class ConversionError extends Error {
+    private static class ConversionError extends TypeError {
         
-        public ConversionError(Token token, Class<?> targetType, Class<?> sourceType) {
+        public ConversionError(PToken token, Class<?> targetType, Class<?> sourceType) {
             this.token = token;
             this.message = "Requed type '" + targetType.getSimpleName() + "' but found '" + sourceType.getSimpleName() + "'";
         }
     }
 
-    private static class OperationError extends Error {
+    private static class OperationError extends TypeError {
         
-        public OperationError(Token token, Class<?> targetType, String opId) {
+        public OperationError(PToken token, Class<?> targetType, String opId) {
             this.token = token;
             this.message = "No action for '" + opId + "' producing '" + targetType.getSimpleName() + "'";
         }
     }
     
-    protected static void error(Token token, String message) {
+    protected static void error(PToken token, String message) {
         error(token, message, null);
     }
 
-    protected static void error(Token token, String message, Exception e) {
+    protected static void error(PToken token, String message, Exception e) {
         if (e != null) {
-            throw new ParserException(token.text, token.offset, token.line, token.pos, message, e);
+            throw new ParserException(token, message, e);
         }
         else {
-            throw new ParserException(token.text, token.offset, token.line, token.pos, message);
+            throw new ParserException(token, message);
         }
     }
     
@@ -282,11 +473,11 @@ public class NanoParser<C> {
         int line;
         int pos;
         
-        public Token matchToken(Matcher matcher) {
+        public PToken matchToken(Matcher matcher) {
             matcher.reset(text);
             matcher.region(offset, text.length());
             if (matcher.lookingAt()) {
-                Token t = new Token();
+                PToken t = new PToken();
                 t.text = text;
                 t.body = matcher.group(0);
                 t.offset = offset;
@@ -313,8 +504,8 @@ public class NanoParser<C> {
             return text.length() <= offset;
         }
 
-        public Token emptyToken() {
-            Token t = new Token();
+        public PToken emptyToken() {
+            PToken t = new PToken();
             t.text = text;
             t.body = "";
             t.offset = offset;
@@ -336,11 +527,12 @@ public class NanoParser<C> {
         }
         
         @Override
-        public void addEnclosing(String pattern, OperatorInfo op, SyntaticScope nestedScope) {
+        public void addEnclosing(String pattern, OperatorInfo op, OperatorInfo prefixOp, SyntaticScope nestedScope) {
             ParseTableElement e = new ParseTableElement(pattern);
             e.operatorInfo = op;
             e.enclosing = true;
             e.subscope = nestedScope;
+            e.prefixOp = prefixOp;
             table.add(e);
         }
         @Override
@@ -403,7 +595,7 @@ public class NanoParser<C> {
             return stack.isEmpty();
         }
 
-        private ParseNode collapse(Token mark) {
+        private ParseNode collapse(PToken mark) {
             
             if (stack.isEmpty()) {
                 error(mark, "Empty expression");
@@ -524,6 +716,7 @@ public class NanoParser<C> {
         boolean term;
         boolean enclosing;
         OperatorInfo operatorInfo;
+        OperatorInfo prefixOp; // optional enclosure prefix operator
         SyntaticScope subscope;
         ParseTable subtable;
         
@@ -545,12 +738,48 @@ public class NanoParser<C> {
         }
     }
     
-    private static class Token {
+    private static class PToken implements Token {
+        
         CharSequence text;
         String body;
         int offset;
         int line;
         int pos;
+        
+        @Override
+        public String tokenBody() {
+            return body;
+        }
+        
+        @Override
+        public CharSequence source() {
+            return text;
+        }
+        
+        @Override
+        public int line() {
+            return line + 1;
+        }
+        
+        @Override
+        public int pos() {
+            return pos;
+        }
+        
+        @Override
+        public int offset() {
+            return offset;
+        }
+        
+        @Override
+        public String excerpt() {
+            return excerpt(60);
+        }
+        
+        @Override
+        public String excerpt(int excerptLengthLimit) {
+            return ParserException.formatTokenExcertp(this, excerptLengthLimit);
+        }
         
         @Override
         public String toString() {
@@ -560,7 +789,7 @@ public class NanoParser<C> {
     
     private static class ParseNode {
         
-        Token token;
+        PToken token;
         int rank; // -1 is term rank
         OperatorInfo op;
         ParseNode leftNode;
