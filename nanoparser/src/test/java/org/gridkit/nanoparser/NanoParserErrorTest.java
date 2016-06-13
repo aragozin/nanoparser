@@ -43,48 +43,48 @@ public class NanoParserErrorTest extends ReflectionActionHandler<Void> {
             .term("BETA", "b")        // special token
             .toScope();
     
-    @Unary("DECIMAL")
-    public Integer toInt(String opbody, String param) {
+    @Term("DECIMAL")
+    public Integer toInt(String param) {
         return Integer.valueOf(param);
     }
 
-    @Unary("BETA")
-    public String beta(String opbody, String param) {
+    @Term("BETA")
+    public String beta(String param) {
         return "b";
     }
     
     @Binary("+")
-    public Integer plus(String opbody, Integer a, Integer b) {
+    public Integer plus(Integer a, Integer b) {
         return a + b;
     }
 
     @Unary("-")
-    public Integer minus(String opbody, Integer a) {
+    public Integer minus(Integer a) {
         return -a;
     }
 
     @Binary("-")
-    public Integer minus(String opbody, Integer a, Integer b) {
+    public Integer minus(Integer a, Integer b) {
         return a - b;
     }
 
     @Binary("*")
-    public Integer mult(String opbody, Integer a, Integer b) {
+    public Integer mult(Integer a, Integer b) {
         return a * b;
     }
 
     @Binary("|")
-    public String concat(String opbody, String a, String b) {
+    public String concat(String a, String b) {
         return a + b;
     }
 
     @Unary("strLen")
-    public Integer strLen(String opbody, String a) {
+    public Integer strLen(String a) {
         return a.length();
     }
 
     @Unary("boom")
-    public Integer boom(String opbody, String a) {
+    public Integer boom(String a) {
         throw new SemanticExpection("Boom");
     }
 
@@ -127,6 +127,9 @@ public class NanoParserErrorTest extends ReflectionActionHandler<Void> {
         addCase(cases, "1 + boom(b | b)", "Boom")
         .sourceRef("1 + boom(b | b)", 
                    "    ^");
+        addCase(cases, "1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + boom(b + b) + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 2", "No action for '+' producing 'String'")
+        .sourceRef("...  + 1 + 1 + 1 + 1 + boom(b + b) + 1 + 1 + 1 + 1 + 1 + ...", 
+                   "                              ^");
         addCase(cases, "1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + boom(b | b) + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 2", "Boom")
         .sourceRef("... + 1 + 1 + 1 + 1 + 1 + 1 + boom(b | b) + 1 + 1 + 1 + 1...", 
                    "                              ^");
@@ -169,9 +172,15 @@ public class NanoParserErrorTest extends ReflectionActionHandler<Void> {
             Assert.fail("ParseException is expected");
         }
         catch(ParserException e) {
-            Assert.assertEquals(errorMessage, e.getMessage());
-            if (sourceReference != null) {
-                Assert.assertEquals(sourceReference, e.getToken().excerpt());
+            try {
+                Assert.assertEquals(errorMessage, e.getMessage());
+                if (sourceReference != null) {
+                    Assert.assertEquals(sourceReference, e.getToken().excerpt());
+                }
+            }
+            catch(AssertionError ae) {
+                System.err.println(e.formatVerboseErrorMessage());
+                throw ae;
             }
         }
     }

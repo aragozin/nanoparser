@@ -20,6 +20,17 @@ import java.util.List;
 
 public class NanoGrammar {
 
+    public static String ACTION_NOOP = "";
+    
+    /**
+     * Pseudo action applied at top level
+     * of expression evaluation if available.
+     * <br/>
+     * May be exploited for additional top level 
+     * conversion rules.
+     */
+    public static String ACTION_EVAL = "#EVAL#";
+    
     /**
      * @return Builder for new {@link SyntaticScope}
      */

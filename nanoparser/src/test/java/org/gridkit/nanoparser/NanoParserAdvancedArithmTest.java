@@ -96,7 +96,7 @@ public class NanoParserAdvancedArithmTest extends ReflectionActionHandler<Void> 
     }
 
     @Binary(",")
-    public int[] join(int[] a, Integer b) {
+    public int[] join(@Convertible int[] a, Integer b) {
         int[] n = Arrays.copyOf(a, a.length + 1);
         n[a.length] = b;
         return n;

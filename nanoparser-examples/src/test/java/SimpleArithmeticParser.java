@@ -23,34 +23,34 @@ public class SimpleArithmeticParser extends ReflectionActionHandler<Void> {
             .nestedInfixOp(",").rank(0) // comma would be accepted only with "max(...)"
             .toScope();
     
-    @Unary("DECIMAL")
-    public Integer toInt(String opbody, String param) {
+    @Term("DECIMAL")
+    public Integer toInt(String param) {
         return Integer.valueOf(param);
     }
     
     @Binary("+")
-    public Integer plus(String opbody, Integer a, Integer b) {
+    public Integer plus(Integer a, Integer b) {
         return a + b;
     }
 
     @Unary("-")
-    public Integer minus(String opbody, Integer a) {
+    public Integer minus(Integer a) {
         return -a;
     }
 
     @Binary("-")
-    public Integer minus(String opbody, Integer a, Integer b) {
+    public Integer minus(Integer a, Integer b) {
         return a - b;
     }
 
     @Binary("*")
-    public Integer mult(String opbody, Integer a, Integer b) {
+    public Integer mult(Integer a, Integer b) {
         return a * b;
     }
 
     // Function taken multiple arguments separated by comma
     @Unary("max")
-    public Integer max(String opbidy, int[] args) {
+    public Integer max(int[] args) {
         int n = args[0];
         for(int i = 1; i < args.length; ++i) {
             if (args[i] > n) {
@@ -62,7 +62,7 @@ public class SimpleArithmeticParser extends ReflectionActionHandler<Void> {
     
     // Comma operator to collect argument for a function
     @Binary(",")
-    public int[] args(String opbody, int[] head, Integer tail) {
+    public int[] args(@Convertible int[] head, Integer tail) {
         int[] r = Arrays.copyOf(head, head.length + 1);
         r[head.length] = tail;
         return r;

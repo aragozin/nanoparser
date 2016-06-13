@@ -17,26 +17,37 @@ package org.gridkit.nanoparser;
 
 public interface SemanticActionHandler<C> {
 
-    public <R> ActionHandler<C, R, Object, Void> lookupTerm(String opID, Class<R> returnType);
+    public TermActionHandler<?, ?>[] enumTerm(String opId, Class<?> rType);
 
-    public <R, A> ActionHandler<C, R, A, Void> lookupUnary(String opID, Class<R> returnType, Class<A> argA);
+    public UnariActionHandler<?, ?, ?>[] enumUnaries(String opId, Class<?> rType, Class<?> argType);
 
-    public <R, A, B> ActionHandler<C, R, A, B> lookupBinary(String opID, Class<R> returnType, Class<A> argA, Class<B> argB);
+    public BinaryActionHandler<?, ?, ?, ?>[] enumBinaries(String opId, Class<?> rType, Class<?> leftType, Class<?> rightType);
 
-    public <R, T> ActionHandler<C, R, T, Void> lookupConvertor(Class<?> sourceClass, Class<R> returnType);
-
-    public Class<?>[] enumConvertions(Class<?> targetClass);
-
-    public Class<?>[][] enumUnaries(String opId);
-
-    public Class<?>[][] enumBinaries(String opId);
-    
-    public interface ActionHandler<C, R, A, B> {
+    public interface TermActionHandler<C, R> {
         
+        public Class<R> returnType();
+        
+        public R apply(C parserContext, Token token);
+    }
+        
+    public interface UnariActionHandler<C, R, A> {
+
+        public Class<R> returnType();
+        
+        public Class<A> argType();
+        
+        public R apply(C parserContext, Token token, A arg);
+    }
+
+    public interface BinaryActionHandler<C, R, A, B> {
+
+        public Class<R> returnType();
+
         public Class<A> leftType();
-        
+
         public Class<B> rightType();
         
-        public R apply(C parserContext, Token token, A left, B right);
+        public R apply(C parserContext, Token token, A leftArg, B rightArg);
+        
     }
 }
