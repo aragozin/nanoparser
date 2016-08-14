@@ -671,6 +671,18 @@ public class NanoParser<C> {
             
             return subtable;
         }
+        
+        public String toString() {
+            if (term) {
+                return "TERM{" + matcher.pattern().toString() + "}";
+            }
+            else if (enclosing) {
+                return "ENC{" + matcher.pattern().toString() + "} -> " + subscope;
+            }
+            else {
+                return "OP{" + matcher.pattern() + "} -> " + operatorInfo.id();
+            }
+        }
     }
     
     private static class PToken implements Token {

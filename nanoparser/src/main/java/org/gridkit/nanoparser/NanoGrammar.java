@@ -108,6 +108,10 @@ public class NanoGrammar {
         
         public OpInfixBuilder<T> rank(int id);
 
+        /**
+         * Not implemented
+         */
+        @Deprecated
         public OpInfixBuilder<T> rightAssoc();
 
         public OpInfixBuilder<T> leftAssoc();
@@ -130,6 +134,10 @@ public class NanoGrammar {
         public OpEnclosureWithRankBuilder<T> nestedInfixOp(String opIDandPattern);
 
         public OpEnclosureWithRankBuilder<T> nestedInfixOp(String opID, String pattern);
+
+        public OpEnclosureWithRankBuilder<T> nestedInfixOrPrefixOp(String opIDandPattern);
+        
+        public OpEnclosureWithRankBuilder<T> nestedInfixOrPrefixOp(String opID, String pattern);
 
     }
 
@@ -411,6 +419,22 @@ public class NanoGrammar {
                 this.scope = nested.toLazyScope();
             }
             nested.infixOp(opID, pattern);
+            return this;
+        }
+        
+        @Override
+        public OpEnclosureWithRankBuilder nestedInfixOrPrefixOp(String opIDandPattern) {
+            return nestedInfixOrPrefixOp(opIDandPattern, opIDandPattern);
+        }
+        
+        @Override
+        public OpEnclosureWithRankBuilder nestedInfixOrPrefixOp(String opID, String pattern) {
+            if (nested == null) {
+                nested = new Builder();
+                nested.include(toLazyScope());
+                this.scope = nested.toLazyScope();
+            }
+            nested.infixOrPrefixOp(opID, pattern);
             return this;
         }
         

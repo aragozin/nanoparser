@@ -297,7 +297,7 @@ public abstract class ReflectionActionHandler<C> implements SemanticActionHandle
             System.arraycopy(trace, 0, trace, 1, trace.length - 1);
             trace[0] = se;
             e.setStackTrace(trace);
-            return e;
+            throw e;
         }
         
         public void initTermArguments() {
@@ -485,7 +485,7 @@ public abstract class ReflectionActionHandler<C> implements SemanticActionHandle
             left.add(null);
             right.add(null);
             Convertible lc = getConvertibleAnnotation(method.getParameterAnnotations()[leftArg]);
-            Convertible rc = rightArg < 0 ? null : getConvertibleAnnotation(method.getParameterAnnotations()[leftArg]);
+            Convertible rc = rightArg < 0 ? null : getConvertibleAnnotation(method.getParameterAnnotations()[rightArg]);
             if (lc != null) {
                 if (lc.value().length == 0) {
                     host.addConversions(left, leftType);
@@ -513,14 +513,14 @@ public abstract class ReflectionActionHandler<C> implements SemanticActionHandle
                         if (lt != null) {
                             leftCvt = host.getConvertor(lt, leftType);
                             if (leftCvt == null) {
-                                methodError("Method '" + method.getName() + "' No conversion found " + lt.getSimpleName() + " -> " + leftType.getSimpleName());
+                                throw methodError("Method '" + method.getName() + "' No conversion found " + lt.getSimpleName() + " -> " + leftType.getSimpleName());
                             }
                         }
                         ArgConvertor rightCvt = null;
                         if (rt != null) {
-                            rightCvt = host.getConvertor(rt, leftType);
+                            rightCvt = host.getConvertor(rt, rightType);
                             if (rightCvt == null) {
-                                methodError("Method '" + method.getName() + "' No conversion found " + rt.getSimpleName() + " -> " + rightType.getSimpleName());
+                                throw methodError("Method '" + method.getName() + "' No conversion found " + rt.getSimpleName() + " -> " + rightType.getSimpleName());
                             }
                         }
                         MethodOpHandler clone = new MethodOpHandler(this, leftCvt, rightCvt);

@@ -57,6 +57,9 @@ public class ParserException extends RuntimeException {
             if (parseText.charAt(ls) != '\n') {
                 --ls;
             }
+            else {
+                break;
+            }
         }
         int backLimit = lengthLimit / 2;
         int back = tkn.offset() - (ls + 1);
@@ -81,7 +84,7 @@ public class ParserException extends RuntimeException {
         if (skipStart) {
             sb.append("    ");
         }
-        for(int n = 0; n != back; ++n) {
+        for(int n = 0; n < back; ++n) {
             sb.append(' ');
         }
         sb.append("^\n");
