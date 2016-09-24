@@ -112,6 +112,9 @@ public class NanoParserErrorTest extends ReflectionActionHandler<Void> {
         addCase(cases, "3 + a", "No action for 'ALPHA' producing 'Integer'")
         .sourceRef("3 + a", 
                    "    ^");
+        addCase(cases, "a + 3", "No action for 'ALPHA' producing 'Integer'")
+        .sourceRef("a + 3", 
+                   "^");
         addCase(cases, "a + a", "No action for 'ALPHA' producing 'Integer'")
         .sourceRef("a + a", 
                    "^");
@@ -124,6 +127,12 @@ public class NanoParserErrorTest extends ReflectionActionHandler<Void> {
         addCase(cases, "strLen(1 + 1)", "No action for '+' producing 'String'")
         .sourceRef("strLen(1 + 1)", 
                    "         ^");
+        addCase(cases, "strLen(1 + 1) + 1", "No action for '+' producing 'String'")
+        .sourceRef("strLen(1 + 1) + 1", 
+                   "         ^");
+        addCase(cases, "1 + strLen(1 + 1)", "No action for '+' producing 'String'")
+        .sourceRef("1 + strLen(1 + 1)", 
+                   "             ^");
         addCase(cases, "1 + boom(b | b)", "Boom")
         .sourceRef("1 + boom(b | b)", 
                    "    ^");

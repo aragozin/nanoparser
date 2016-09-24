@@ -40,22 +40,41 @@ public class NanoParser<C> {
         this.parseTable = new ParseTable(scope);
     }
     
+    /**
+     * Parses whole text as single expression.
+     */
     public <T> T parse(C parserContext, Class<T> type, CharSequence source) {
-        StreamState state = new StreamState();
-        state.text = source;
-        ParseNode node =  parse(state, parseTable);
+        SourceReader state = new SourceReader(source);
+        ParseNode node =  parse(state, parseTable, null);
+        return evalNode(parserContext, type, state, node);
+    }
+
+    /**
+     * Reader next expression from reader. Grammar should have at least one separator token.
+     */
+    public <T> T parseNext(C parserContext, Class<T> type, SourceReader source) {
+        ParseNode node =  parse(source, parseTable, NanoGrammar.ACTION_EOE);
+        if (node == null) {
+            return null;
+        }
+        else {
+            return evalNode(parserContext, type, source, node);
+        }
+    }
+
+    protected <T> T evalNode(C parserContext, Class<T> type, SourceReader source, ParseNode node) {
         if (actionDispatcher.enumUnaries(NanoGrammar.ACTION_EVAL, type, null).length > 0) {
             ParseNode evalNode = new ParseNode();
             evalNode.op = EVAL_OP;
-            evalNode.token = state.emptyToken();
+            evalNode.token = source.emptyToken();
             evalNode.leftNode = node;
             node = evalNode;
         }
         Object v = convertTree(parserContext, type, node);
         return type.cast(v);
     }
-
-    protected <T> ParseNode parse(StreamState stream, ParseTable table) {
+    
+    protected <T> ParseNode parse(SourceReader stream, ParseTable table, String eoeToken) {
         ParserState parser = new ParserState();
         
         tokenLoop:
@@ -65,16 +84,20 @@ public class NanoParser<C> {
                 continue;
             }
             if (table.escapeToken != null) {
-                PToken tkn = stream.matchToken(table.escapeToken);
+                Token tkn = stream.matchToken(table.escapeToken);
                 if (tkn != null) {
                     return parser.collapse(tkn);
                 }
             }
-            PToken prev = stream.emptyToken();
+            Token prev = stream.emptyToken();
             for(ParseTableElement pat: table.table) {
-                PToken tkn = stream.matchToken(pat.matcher);
+                Token tkn = stream.matchToken(pat.matcher);
                 if (tkn != null) {
                     if (pat.term) {
+                        if (pat.operatorInfo.id().equals(eoeToken)) {
+                            // end of expression token 
+                            break tokenLoop;                            
+                        }
                         if (!parser.isEmpty() && parser.last().rank < 0 && table.glueToken != null) {
                             ParseNode node = new ParseNode();
                             node.op = table.glueToken;
@@ -91,18 +114,20 @@ public class NanoParser<C> {
                     }
                     else if (pat.enclosing) {
                         if (pat.prefixOp != null) {
-                            ParseNode prefOp = new ParseNode();
-                            prefOp.op = pat.prefixOp;
-                            prefOp.token = tkn;
-                            prefOp.rank = prefOp.op.rank();
-                            parser.pushToken(prefOp);
+                            if (!pat.optionalPrefix || parser.isOperatorExpected()) { 
+                                ParseNode prefOp = new ParseNode();
+                                prefOp.op = pat.prefixOp;
+                                prefOp.token = tkn;
+                                prefOp.rank = prefOp.op.rank();
+                                parser.pushToken(prefOp);
+                            }
                         }
                         ParseNode node = new ParseNode();
                         node.op = pat.operatorInfo;
                         node.token = tkn;
                         node.rank = -1;
                  
-                        node.leftNode = parse(stream, pat.subtable());
+                        node.leftNode = parse(stream, pat.subtable(), null);
                         
                         parser.pushToken(node);                        
                     }
@@ -123,11 +148,18 @@ public class NanoParser<C> {
             // No token matched
             error(prev, "Cannot parse next token");
         }
+        if (table.escapeToken != null) {
+            error(stream.emptyToken(), "Syntatic scope is not closed");
+        }
+        // tolerate empty expression
+        if (parser.isEmpty() && eoeToken != null) {
+            return null;
+        }
         return parser.collapse(stream.emptyToken());
     }
 
     private <T> Object convertTree(C parserContext, Class<T> type, ParseNode node) {
-        Error error = mapActions(type, node);
+        Error error = mapActions(type, node, -1);
         if (error == null) {
             return applyActions(parserContext, type, node);
         }
@@ -136,15 +168,15 @@ public class NanoParser<C> {
         }
     }
     
-    private Error mapActions(Class<?> type, ParseNode node) {
+    private Error mapActions(Class<?> type, ParseNode node, int bestParsed) {
         if (isTerm(node)) {
-            return mapTermAction(type, node);
+            return mapTermAction(type, node, bestParsed);
         }
         else if (isUnary(node)) {
-            return mapUnaryAction(type, node);
+            return mapUnaryAction(type, node, bestParsed);
         }
         else {
-            return mapBinaryAction(type, node);
+            return mapBinaryAction(type, node, bestParsed);
         }
     }
 
@@ -160,10 +192,10 @@ public class NanoParser<C> {
         }
     }
 
-    private Error mapTermAction(Class<?> type, ParseNode node) {
+    protected Error mapTermAction(Class<?> type, ParseNode node, int bestParsed) {
         if (NanoGrammar.ACTION_NOOP.equals(node.op.id())) {
             if (type != String.class) {
-                return new ConversionError(node.token, type, String.class);
+                return errorConversion(node.token, bestParsed, type, String.class);
             }
             else {
                 return null;
@@ -172,7 +204,7 @@ public class NanoParser<C> {
         else {
             TermActionHandler<?, ?>[] hh = actionDispatcher.enumTerm(node.op.id(), type);
             if (hh.length == 0) {
-                return new OperationError(node.token, type, node.op.id());
+                return errorOperation(node.token, bestParsed, type, node.op.id());
             }
             else {
                 node.inferedHandler = hh[0];
@@ -181,19 +213,19 @@ public class NanoParser<C> {
         }
     }
 
-    private Error mapUnaryAction(Class<?> type, ParseNode node) {
+    protected Error mapUnaryAction(Class<?> type, ParseNode node, int bestParsed) {
         if (NanoGrammar.ACTION_NOOP.equals(node.op.id())) {
-            return mapActions(type, node.leftNode);
+            return mapActions(type, node.leftNode, node.leftNode.token.offset());
         }
         else {
             UnariActionHandler<?, ?, ?>[] hh = actionDispatcher.enumUnaries(node.op.id(), type, null);
             Error fe = null;
             for(UnariActionHandler<?, ?, ?> h: hh) {
                 Class<?> at = h.argType();
-                Error e = mapActions(at, node.leftNode);
+                Error e = mapActions(at, node.leftNode, node.leftNode.token.offset());
                 if (e != null) {
                     if (fe != null) {
-                        if (e.token.offset > fe.token.offset) {
+                        if (e.token.offset() > fe.token.offset()) {
                             fe = e;
                         }
                     }
@@ -213,39 +245,41 @@ public class NanoParser<C> {
             else {
                 Class<?> dt = defaultUnaryType(node.op.id(), defaultType(node.leftNode));
                 if (dt == null) {
-                    return new OperationError(node.token, type, node.op.id());
+                    return errorOperation(node.token, bestParsed, type, node.op.id());
                 }
                 else {
-                    return new ConversionError(node.token, type, dt);
+                    return errorConversion(node.token, bestParsed, type, dt);
                 }
             }
         }
     }
 
-    private Error mapBinaryAction(Class<?> type, ParseNode node) {
-        
+    protected Error mapBinaryAction(Class<?> type, ParseNode node, int bestParsed) {
+
         BinaryActionHandler<?, ?, ?, ?>[] hh = actionDispatcher.enumBinaries(node.op.id(), type, null, null);
         Error fe = null; // right most error
         for(BinaryActionHandler<?, ?, ?, ?> h: hh) {
+            int progress = bestParsed;
             Class<?> lt = h.leftType();
             Class<?> rt = h.rightType();
-            Error e = mapActions(lt, node.leftNode);
-            if (e == null) {
-                e = mapActions(rt, node.rightNode);
+            Error e = mapActions(lt, node.leftNode, progress);
+            progress = node.leftNode.token.offset();
+            if (e == null) {                
+                e = mapActions(rt, node.rightNode, progress);
             }
             if (e != null) {
                 if (fe != null) {
-                    if (e.token.offset > fe.token.offset) {
+                    if (e.bestProgress > fe.bestProgress) {
                         fe = e;
                     }
-                    else if (node.token.offset > fe.token.offset) {
-                        if (fe instanceof OperationError) {
-                            Class<?> dt = defaultType(node.leftNode);
-                            if (dt != null && dt != h.leftType()) {
-                                fe = new ConversionError(node.token, h.leftType(), dt);
-                            }
-                        }
-                    }
+//                    else if (node.token.offset() > fe.token.offset()) {
+//                        if (fe instanceof OperationError) {
+//                            Class<?> dt = defaultType(node.leftNode);
+//                            if (dt != null && dt != h.leftType()) {
+//                                fe = new ConversionError(node.token, h.leftType(), dt);
+//                            }
+//                        }
+//                    }
                 }
                 else {
                     fe = e;
@@ -263,10 +297,10 @@ public class NanoParser<C> {
         else {
             Class<?> dt = defaultUnaryType(node.op.id(), defaultType(node.leftNode));
             if (dt == null) {
-                return new OperationError(node.token, type, node.op.id());
+                return errorOperation(node.token, bestParsed, type, node.op.id());
             }
             else {
-                return new ConversionError(node.token, type, dt);
+                return errorConversion(node.token, bestParsed, type, dt);
             }
         }
     }
@@ -313,7 +347,7 @@ public class NanoParser<C> {
     @SuppressWarnings("unchecked")
     private Object applyTermAction(C parserContext, Class<?> type, ParseNode node) {
         if (node.inferedHandler == null) {
-            return node.token.body;
+            return node.token.tokenBody();
         }
         else {
             try {
@@ -367,86 +401,58 @@ public class NanoParser<C> {
         return node.rightNode == null;
     }
 
-    private static abstract class Error {
-        PToken token;
+    Error errorConversion(Token token, int bestParsed, Class<?> targetType, Class<?> sourceType) {
+        ConversionError error = new ConversionError(token, targetType, sourceType);
+        error.bestProgress = bestParsed;
+        return error;
+    }
+
+    Error errorOperation(Token token, int bestParsed, Class<?> targetType, String opId) {
+        OperationError error = new OperationError(token, targetType, opId);
+        error.bestProgress = bestParsed;
+        return error;
+    }
+    
+    protected static abstract class Error {
+        
+        Token token;
         String message;
+        int bestProgress;
+        
+        @Override
+        public String toString() {
+            return message;
+        }
     }
     
     private static class ConversionError extends Error {
         
-        public ConversionError(PToken token, Class<?> targetType, Class<?> sourceType) {
+        public ConversionError(Token token, Class<?> targetType, Class<?> sourceType) {
             this.token = token;
             this.message = "Required type '" + targetType.getSimpleName() + "' but found '" + sourceType.getSimpleName() + "'";
+            this.bestProgress = token.offset();
         }
     }
 
     private static class OperationError extends Error {
 
-        public OperationError(PToken token, Class<?> targetType, String opId) {
+        public OperationError(Token token, Class<?> targetType, String opId) {
             this.token = token;
             this.message = "No action for '" + opId + "' producing '" + targetType.getSimpleName() + "'";
+            this.bestProgress = token.offset();
         }
     }
     
-    protected static void error(PToken token, String message) {
+    protected static void error(Token token, String message) {
         error(token, message, null);
     }
 
-    protected static void error(PToken token, String message, Exception e) {
-        if (e != null) {
+    protected static void error(Token token, String message, Exception e) {
+        if (e != null) {    
             throw new ParserException(token, message, e);
         }
         else {
             throw new ParserException(token, message);
-        }
-    }
-    
-    static class StreamState {
-        
-        CharSequence text;
-        int offset;
-        int line;
-        int pos;
-        
-        public PToken matchToken(Matcher matcher) {
-            matcher.reset(text);
-            matcher.region(offset, text.length());
-            if (matcher.lookingAt()) {
-                PToken t = new PToken();
-                t.text = text;
-                t.body = matcher.group(0);
-                t.offset = offset;
-                t.line = line;
-                t.pos = pos;
-                offset += t.body.length();
-                for(int i = 0; i != t.body.length(); ++i) {
-                    if (t.body.charAt(0) == '\n') {
-                        ++line;
-                        pos = 0;
-                    }
-                    else {
-                        ++pos;
-                    }
-                }
-                return t;
-            }
-            else {
-                return null;
-            }
-        }        
-        
-        public boolean endOfStream() {
-            return text.length() <= offset;
-        }
-
-        public PToken emptyToken() {
-            PToken t = new PToken();
-            t.text = text;
-            t.body = "";
-            t.offset = offset;
-            t.line = line;
-            t.pos = pos;
-            return t;
         }
     }
     
@@ -462,14 +468,16 @@ public class NanoParser<C> {
         }
         
         @Override
-        public void addEnclosing(String pattern, OperatorInfo op, OperatorInfo prefixOp, SyntaticScope nestedScope) {
+        public void addEnclosing(String pattern, OperatorInfo op, OperatorInfo prefixOp, boolean optionalPrefix, SyntaticScope nestedScope) {
             ParseTableElement e = new ParseTableElement(pattern);
             e.operatorInfo = op;
             e.enclosing = true;
             e.subscope = nestedScope;
             e.prefixOp = prefixOp;
+            e.optionalPrefix = optionalPrefix;
             table.add(e);
         }
+        
         @Override
         public void addGlueOperator(OperatorInfo op) {
             if (glueToken != null) {
@@ -529,14 +537,18 @@ public class NanoParser<C> {
         public boolean isEmpty() {
             return stack.isEmpty();
         }
+        
+        public boolean isOperatorExpected() {
+            return !isEmpty() && (last().rank < 0 || last().op.isPostfix());
+        }
 
-        private ParseNode collapse(PToken mark) {
+        private ParseNode collapse(Token mark) {
             
             if (stack.isEmpty()) {
                 error(mark, "Empty expression");
             }
             if (last().rank > 0) {
-                error(last().token, "Missing right hand side '" + last().token.body + "'");
+                error(last().token, "Missing right hand side '" + last().token.tokenBody() + "'");
             }
             
             while(stack.size() > 1) {
@@ -570,8 +582,11 @@ public class NanoParser<C> {
                         return;
                     }
                     else {
-                        error(op.token, "Missing left hand side '" + op.token.body + "'");
+                        error(op.token, "Missing left hand side '" + op.token.tokenBody() + "'");
                     }
+                }
+                if (last().rank >= 0 && !op.op.isPrefix() && !last().op.isPostfix()) {
+                    error(op.token, "Missing left hand side '" + op.token.tokenBody() + "'");
                 }
                 while(true) {
                     int lor = lastOpRank();
@@ -584,6 +599,9 @@ public class NanoParser<C> {
                             if (op.op.isPrefix()) {
                                 stack.add(op);
                                 break;
+                            }
+                            else if (last().op.isPostfix()) {
+                                mergeLastOp();
                             }
                             else {
                                 error(op.token, "Two consequive operators");
@@ -620,9 +638,23 @@ public class NanoParser<C> {
         private void mergeLastOp() {
             int s = stack.size();
             ParseNode b = stack.remove(s - 1);
+            if (b.rank >= 0) {
+                if (b.op.isPostfix()) {
+                    // merge postfix
+                    ParseNode a = stack.remove(s - 2);
+                    b.leftNode = a;
+                    b.rightNode = null;
+                    b.rank = -1;
+                    stack.add(b);
+                    return;
+                }
+                else {
+                    throw new ParserException(b.token, "Op already collapsed");
+                }
+            }
             ParseNode o = stack.remove(s - 2);
             if (o.rank < 0) {
-                throw new RuntimeException("Op already collapsed");
+                throw new ParserException(o.token, "Op already collapsed");
             }
 
             if (stack.isEmpty() || last().rank >= 0) {
@@ -652,6 +684,7 @@ public class NanoParser<C> {
         boolean enclosing;
         OperatorInfo operatorInfo;
         OperatorInfo prefixOp; // optional enclosure prefix operator
+        boolean optionalPrefix; // if true, prefix operation can be omitted
         SyntaticScope subscope;
         ParseTable subtable;
         
@@ -685,58 +718,9 @@ public class NanoParser<C> {
         }
     }
     
-    private static class PToken implements Token {
+    protected static class ParseNode {
         
-        CharSequence text;
-        String body;
-        int offset;
-        int line;
-        int pos;
-        
-        @Override
-        public String tokenBody() {
-            return body;
-        }
-        
-        @Override
-        public CharSequence source() {
-            return text;
-        }
-        
-        @Override
-        public int line() {
-            return line + 1;
-        }
-        
-        @Override
-        public int pos() {
-            return pos;
-        }
-        
-        @Override
-        public int offset() {
-            return offset;
-        }
-        
-        @Override
-        public String excerpt() {
-            return excerpt(60);
-        }
-        
-        @Override
-        public String excerpt(int excerptLengthLimit) {
-            return ParserException.formatTokenExcertp(this, excerptLengthLimit);
-        }
-        
-        @Override
-        public String toString() {
-            return body;
-        }
-    }
-    
-    private static class ParseNode {
-        
-        PToken token;
+        Token token;
         int rank; // -1 is term rank
         OperatorInfo op;
         ParseNode leftNode;
@@ -744,21 +728,49 @@ public class NanoParser<C> {
 
         // used to cache handler chosen by type inference
         Object inferedHandler;
+
+        public int spanFrom() {
+            int s = token.offset();
+            if (leftNode != null) {
+                s = Math.min(s, leftNode.spanFrom());
+            }
+            if (rightNode != null) {
+                s = Math.min(s, rightNode.spanFrom());
+            }
+            return s;
+        }
+        
+        public int spanTo() {
+            int s = token.offset() + token.tokenBody().length();
+            if (leftNode != null) {
+                s = Math.max(s, leftNode.spanTo());
+            }
+            if (rightNode != null) {
+                s = Math.max(s, rightNode.spanTo());
+            }
+            return s;
+        }
+        
+        public String getSpan() {
+            StringBuilder sb = new StringBuilder();
+            sb.append(token.source().subSequence(spanFrom(), spanTo()));
+            return sb.toString();
+        }
         
         @Override
         public String toString() {
             StringBuilder sb = new StringBuilder();
-            sb.append(op.id()).append("[").append(token);
+            sb.append("[").append(op.id()).append("]").append("{|").append(token);
             if (leftNode != null) {
-                sb.append(",").append(leftNode);
+                sb.append("|");
+                sb.append(leftNode.getSpan());
             }
             if (rightNode != null) {
-                sb.append(",").append(rightNode);
+                sb.append("|");
+                sb.append(rightNode.getSpan());
             }
-            sb.append("]");
+            sb.append("|}");
             return sb.toString();
         }
-        
-        
     }
 }

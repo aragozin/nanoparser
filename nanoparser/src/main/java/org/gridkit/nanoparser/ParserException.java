@@ -52,7 +52,10 @@ public class ParserException extends RuntimeException {
     public static String formatTokenExcertp(Token tkn, int lengthLimit) {
         StringBuilder sb = new StringBuilder();
         CharSequence parseText = tkn.source();
-        int ls = tkn.offset();        
+        int ls = tkn.offset();
+        if (ls >= parseText.length()) {
+            ls = parseText.length() - 1;
+        }
         while(ls >= 0) {
             if (parseText.charAt(ls) != '\n') {
                 --ls;

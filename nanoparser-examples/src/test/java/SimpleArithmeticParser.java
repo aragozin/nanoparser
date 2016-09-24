@@ -15,9 +15,9 @@ public class SimpleArithmeticParser extends ReflectionActionHandler<Void> {
                           // leading tilde (~) in token use for RegEx
             .skip("~\\s") // ignore white spaces
             .term("DECIMAL", "~\\d+") // simple decimal token
-            .infixOp("+", "+")
-            .infixOrPrefixOp("-", "-")
-            .infixOp("*", "*").rank(2)
+            .infixOp("+")
+            .infixOrPrefixOp("-")
+            .infixOp("*").rank(2)
             .enclosure("(", ")")
             .enclosure("max", "~max\\(", ")") // hard coded function
             .nestedInfixOp(",").rank(0) // comma would be accepted only with "max(...)"
@@ -48,7 +48,7 @@ public class SimpleArithmeticParser extends ReflectionActionHandler<Void> {
         return a * b;
     }
 
-    // Function taken multiple arguments separated by comma
+    // Function takes multiple arguments separated by comma
     @Unary("max")
     public Integer max(int[] args) {
         int n = args[0];
