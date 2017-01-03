@@ -52,9 +52,15 @@ public class ParserException extends RuntimeException {
     public static String formatTokenExcertp(Token tkn, int lengthLimit) {
         StringBuilder sb = new StringBuilder();
         CharSequence parseText = tkn.source();
+        int toffs = tkn.offset();
         int ls = tkn.offset();
         if (ls >= parseText.length()) {
             ls = parseText.length() - 1;
+        }
+        boolean atEol = ls >= 0 & parseText.charAt(ls) == '\n';
+        if (atEol) {
+            --ls;
+            --toffs;
         }
         while(ls >= 0) {
             if (parseText.charAt(ls) != '\n') {
@@ -65,14 +71,14 @@ public class ParserException extends RuntimeException {
             }
         }
         int backLimit = lengthLimit / 2;
-        int back = tkn.offset() - (ls + 1);
+        int back = toffs - (ls + 1);
         boolean skipStart = false;
         if (back > backLimit) {
             back = backLimit - 4;
             skipStart = true;
             sb.append("... ");
         }
-        for(int n = tkn.offset() - back; n < parseText.length(); ++n) {
+        for(int n = toffs - back; n < parseText.length(); ++n) {
             if (parseText.charAt(n) == '\n') {
                 break;
             }

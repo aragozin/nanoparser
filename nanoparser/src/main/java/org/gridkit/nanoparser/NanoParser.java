@@ -98,21 +98,43 @@ public class NanoParser<C> {
                             // end of expression token 
                             break tokenLoop;                            
                         }
-                        if (!parser.isEmpty() && parser.last().rank < 0 && table.glueToken != null) {
-                            ParseNode node = new ParseNode();
-                            node.op = table.glueToken;
-                            node.token = prev;
-                            node.rank = table.glueToken.rank();
-                            parser.pushToken(node);                            
+                        
+                        ParseNode lastNode = parser.isEmpty() ? null : parser.last();
+                        if (lastNode != null && lastNode.isTerm()) {
+
+                            // placing implicit glue operation
+                            if (pat.prefixOp != null) {
+                                ParseNode node = new ParseNode();
+                                node.op = pat.prefixOp;
+                                node.token = prev;
+                                node.rank = pat.prefixOp.rank();
+                                parser.pushToken(node);                                                            
+                            }
+                            else if (lastNode.rule != null && lastNode.rule.postfixOp != null) {
+                                ParseNode node = new ParseNode();
+                                node.op = lastNode.rule.postfixOp;
+                                node.token = prev;
+                                node.rank = lastNode.rule.postfixOp.rank();
+                                parser.pushToken(node);                                                                                            
+                            }
+                            else if (table.glueToken != null) {
+                                ParseNode node = new ParseNode();
+                                node.op = table.glueToken;
+                                node.token = prev;
+                                node.rank = table.glueToken.rank();
+                                parser.pushToken(node);                            
+                            }                                
                         }
                         
                         ParseNode node = new ParseNode();
+                        node.rule = pat;
                         node.op = pat.operatorInfo;
                         node.token = tkn;
                         node.rank = -1;
                         parser.pushToken(node);
                     }
                     else if (pat.enclosing) {
+                        boolean implPrefix = false;
                         if (pat.prefixOp != null) {
                             if (!pat.optionalPrefix || parser.isOperatorExpected()) { 
                                 ParseNode prefOp = new ParseNode();
@@ -120,20 +142,23 @@ public class NanoParser<C> {
                                 prefOp.token = tkn;
                                 prefOp.rank = prefOp.op.rank();
                                 parser.pushToken(prefOp);
+                                implPrefix = true;
                             }
                         }
                         ParseNode node = new ParseNode();
+                        node.rule = pat;
                         node.op = pat.operatorInfo;
                         node.token = tkn;
                         node.rank = -1;
                  
-                        node.leftNode = parse(stream, pat.subtable(), null);
+                        node.leftNode = parse(stream, pat.subtable(implPrefix), null);
                         
                         parser.pushToken(node);                        
                     }
                     else {
                         // regular operator
                         ParseNode node = new ParseNode();
+                        node.rule = pat;
                         node.op = pat.operatorInfo;
                         node.token = tkn;
                         node.rank = pat.operatorInfo.rank();
@@ -295,7 +320,7 @@ public class NanoParser<C> {
             return fe;
         }
         else {
-            Class<?> dt = defaultUnaryType(node.op.id(), defaultType(node.leftNode));
+            Class<?> dt = defaultBinaryType(node.op.id(), defaultType(node.leftNode), defaultType(node.rightNode));
             if (dt == null) {
                 return errorOperation(node.token, bestParsed, type, node.op.id());
             }
@@ -468,11 +493,12 @@ public class NanoParser<C> {
         }
         
         @Override
-        public void addEnclosing(String pattern, OperatorInfo op, OperatorInfo prefixOp, boolean optionalPrefix, SyntaticScope nestedScope) {
+        public void addEnclosing(String pattern, OperatorInfo op, OperatorInfo prefixOp, boolean optionalPrefix, SyntaticScope perfixedNestedScope, SyntaticScope normalNestedScope) {
             ParseTableElement e = new ParseTableElement(pattern);
             e.operatorInfo = op;
             e.enclosing = true;
-            e.subscope = nestedScope;
+            e.psubscope = perfixedNestedScope;
+            e.nsubscope = normalNestedScope;
             e.prefixOp = prefixOp;
             e.optionalPrefix = optionalPrefix;
             table.add(e);
@@ -507,10 +533,18 @@ public class NanoParser<C> {
         }
         
         @Override
-        public void addToken(String pattern, OperatorInfo op) {
+        public void addToken(String pattern, OperatorInfo op, OperatorInfo implicitPrefix, OperatorInfo implicitPostfix) {
             ParseTableElement e = new ParseTableElement(pattern);
             e.operatorInfo = op;
             e.term = true;
+            if (implicitPrefix != null) {
+                e.prefixOp = implicitPrefix;
+                e.optionalPrefix = true;
+            }
+            if (implicitPostfix != null) {
+                e.postfixOp = implicitPostfix;
+                e.optionalPostfix = true;
+            }
             table.add(e);
         }
         
@@ -683,10 +717,15 @@ public class NanoParser<C> {
         boolean term;
         boolean enclosing;
         OperatorInfo operatorInfo;
-        OperatorInfo prefixOp; // optional enclosure prefix operator
+        OperatorInfo prefixOp; // implicit term/enclosure prefix operator
         boolean optionalPrefix; // if true, prefix operation can be omitted
-        SyntaticScope subscope;
-        ParseTable subtable;
+        OperatorInfo postfixOp; // implicit term/enclosure postfix operator
+        @SuppressWarnings("unused")
+        boolean optionalPostfix; // if true, postfix operation can be omitted
+        SyntaticScope psubscope;
+        SyntaticScope nsubscope;
+        ParseTable psubtable;
+        ParseTable nsubtable;
         
         public ParseTableElement(String pattern) {
             if (pattern.startsWith("~")) {
@@ -697,12 +736,21 @@ public class NanoParser<C> {
             }
         }
 
-        public synchronized ParseTable subtable() {
-            if (subtable == null) {
-                subtable = new ParseTable(subscope);
+        public synchronized ParseTable subtable(boolean implPrefix) {
+            if (implPrefix) {
+                if (psubtable == null) {
+                    psubtable = new ParseTable(psubscope);
+                }
+                
+                return psubtable;
             }
-            
-            return subtable;
+            else {
+                if (nsubtable == null) {
+                    nsubtable = new ParseTable(nsubscope);
+                }
+                
+                return nsubtable;                
+            }
         }
         
         public String toString() {
@@ -710,7 +758,7 @@ public class NanoParser<C> {
                 return "TERM{" + matcher.pattern().toString() + "}";
             }
             else if (enclosing) {
-                return "ENC{" + matcher.pattern().toString() + "} -> " + subscope;
+                return "ENC{" + matcher.pattern().toString() + "} -> " + psubscope + "|" + nsubscope;
             }
             else {
                 return "OP{" + matcher.pattern() + "} -> " + operatorInfo.id();
@@ -722,10 +770,15 @@ public class NanoParser<C> {
         
         Token token;
         int rank; // -1 is term rank
+        ParseTableElement rule;
         OperatorInfo op;
         ParseNode leftNode;
         ParseNode rightNode;
 
+        public boolean isTerm() {
+            return rank < 0;
+        }
+        
         // used to cache handler chosen by type inference
         Object inferedHandler;
 

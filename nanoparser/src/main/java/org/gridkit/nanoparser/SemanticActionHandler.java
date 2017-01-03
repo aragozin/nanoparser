@@ -23,14 +23,18 @@ public interface SemanticActionHandler<C> {
 
     public BinaryActionHandler<?, ?, ?, ?>[] enumBinaries(String opId, Class<?> rType, Class<?> leftType, Class<?> rightType);
 
-    public interface TermActionHandler<C, R> {
+    public interface ActionHandler {
+        
+    }
+    
+    public interface TermActionHandler<C, R> extends ActionHandler {
         
         public Class<R> returnType();
         
         public R apply(C parserContext, Token token);
     }
         
-    public interface UnariActionHandler<C, R, A> {
+    public interface UnariActionHandler<C, R, A> extends ActionHandler {
 
         public Class<R> returnType();
         
@@ -39,7 +43,7 @@ public interface SemanticActionHandler<C> {
         public R apply(C parserContext, Token token, A arg);
     }
 
-    public interface BinaryActionHandler<C, R, A, B> {
+    public interface BinaryActionHandler<C, R, A, B> extends ActionHandler {
 
         public Class<R> returnType();
 

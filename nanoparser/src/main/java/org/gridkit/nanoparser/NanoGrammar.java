@@ -17,6 +17,7 @@ package org.gridkit.nanoparser;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 public class NanoGrammar {
 
@@ -141,11 +142,18 @@ public class NanoGrammar {
     }
 
     public interface TermBuilder<T extends ParserBuilder<?>> extends ParserBuilderTop<T> {
+        
+        public TermBuilder<T> implicitPrefixOp(String opID, int rank);
+
+        public TermBuilder<T> implicitPostfixOp(String opID, int rank);
+    
     }
 
     public interface OpEnclosureBuilder<T extends ParserBuilder<?>> extends ParserBuilderTop<T> {
         
         public ParserBuilderTop<T> scope(SyntaticScope scope);
+
+        public ParserBuilderTop<T> scope(SyntaticScope prefixedScope, SyntaticScope normalScope);
         
         public OpEnclosureBuilder<T> implicitPrefixOp(String opID);
 
@@ -179,13 +187,13 @@ public class NanoGrammar {
     
     public interface ScopeBuilder {
         
-        public void addToken(String pattern, OperatorInfo op);
+        public void addToken(String pattern, OperatorInfo op, OperatorInfo implicitPerfix, OperatorInfo implicitPostfix);
 
         public void addOperator(String pattern, OperatorInfo op);
 
         public void addGlueOperator(OperatorInfo op);
 
-        public void addEnclosing(String pattern, OperatorInfo op, OperatorInfo prefixOp, boolean optionalPrefix, SyntaticScope nestedScope);
+        public void addEnclosing(String pattern, OperatorInfo op, OperatorInfo prefixOp, boolean optionalPrefix, SyntaticScope prefixedNestedScope, SyntaticScope normalNestedScope);
 
         public void addScopeEscapeToken(String pattern);
 
@@ -253,10 +261,15 @@ public class NanoGrammar {
         String prefixOp;
         boolean optionalPrefix;
         int prefixOpRank = 1000;
+        String postfixOp;
+        @SuppressWarnings("unused")
+        boolean optionalPostfix;
+        int postfixOpRank = 1000;
         OpType type;
         int rank = 1;
         boolean rightAssoc;
-        SyntaticScope scope;
+        SyntaticScope pscope;
+        SyntaticScope nscope;
 
         Builder nested;
         
@@ -272,7 +285,9 @@ public class NanoGrammar {
                 }
                 else if (holderType == TokenHolder.class) {
                     OperatorInfo opi = new OperatorInfo(id, type, rank, !rightAssoc);
-                    holders.add(new TokenHolder(pattern, opi));                    
+                    OperatorInfo pre = prefixOp == null ? null : new OperatorInfo(prefixOp, OpType.INFIX, prefixOpRank, true);
+                    OperatorInfo post = postfixOp == null ? null : new OperatorInfo(postfixOp, OpType.INFIX, postfixOpRank, true);
+                    holders.add(new TokenHolder(pattern, opi, pre, post));                    
                 }
                 else if (holderType == GlueHolder.class) {
                     OperatorInfo opi = new OperatorInfo(id, type, rank, !rightAssoc);
@@ -281,7 +296,7 @@ public class NanoGrammar {
                 else if (holderType == EnclosingHolder.class) {
                     OperatorInfo opi = new OperatorInfo(id, type, rank, !rightAssoc);
                     OperatorInfo pop = prefixOp == null ? null : new OperatorInfo(prefixOp, OpType.INFIX, prefixOpRank, true); 
-                    holders.add(new EnclosingHolder(opi, pattern, pattern2, scope, pop, optionalPrefix));                    
+                    holders.add(new EnclosingHolder(opi, pattern, pattern2, pscope, nscope, pop, optionalPrefix));                    
                 }
                 else if (holderType == SkipHolder.class) {
                     holders.add(new SkipHolder(pattern));                    
@@ -294,10 +309,14 @@ public class NanoGrammar {
                 prefixOp = null;
                 prefixOpRank = 1000;
                 optionalPrefix = false;
+                postfixOp = null;
+                postfixOpRank = 1000;
+                optionalPostfix = false;
                 type = null;
                 rank = 1;
                 rightAssoc = false;
-                scope = null;
+                nscope = null;
+                pscope = null;
             }
         }
 
@@ -310,6 +329,7 @@ public class NanoGrammar {
 
         @Override
         public TermBuilder term(String pattern) {
+            validatePattern(pattern);
             push();
             this.id = "";
             this.type = OpType.UNARY;
@@ -320,6 +340,7 @@ public class NanoGrammar {
 
         @Override
         public TermBuilder term(String opID, String pattern) {
+            validatePattern(pattern);
             push();
             this.id = opID;
             this.type = OpType.UNARY;
@@ -329,7 +350,22 @@ public class NanoGrammar {
         }
 
         @Override
+        public TermBuilder implicitPrefixOp(String opID, int rank) {
+            prefixOp = opID;
+            prefixOpRank = rank;
+            return this;
+        }
+
+        @Override
+        public TermBuilder implicitPostfixOp(String opID, int rank) {
+            postfixOp = opID;
+            postfixOpRank = rank;
+            return this;
+        }
+
+        @Override
         public TermBuilder separator(String pattern) {
+            validatePattern(pattern);
             push();
             this.id = ACTION_EOE;
             this.type = OpType.UNARY;
@@ -345,6 +381,7 @@ public class NanoGrammar {
 
         @Override
         public OpInfixBuilder infixOp(String opID, String pattern) {
+            validatePattern(pattern);
             push();
             this.id = opID;
             this.type = OpType.INFIX;
@@ -360,6 +397,7 @@ public class NanoGrammar {
 
         @Override
         public OpInfixBuilder infixOrPrefixOp(String opID, String pattern) {
+            validatePattern(pattern);
             push();
             this.id = opID;
             this.type = OpType.INFIX_OR_PREFIX;
@@ -375,6 +413,7 @@ public class NanoGrammar {
         
         @Override
         public OpPrefixBuilder prefixOp(String opID, String pattern) {
+            validatePattern(pattern);
             push();
             this.id = opID;
             this.type = OpType.PREFIX;
@@ -390,6 +429,7 @@ public class NanoGrammar {
         
         @Override
         public OpPostfixBuilder postfixOp(String opID, String pattern) {
+            validatePattern(pattern);
             push();
             this.id = opID;
             this.type = OpType.POSTFIX;
@@ -400,25 +440,31 @@ public class NanoGrammar {
 
         @Override
         public OpEnclosureBuilder enclosure(String opID, String openPattern, String closePattern) {
+            validatePattern(openPattern);
+            validatePattern(closePattern);
             push();
             this.id = opID;
             this.type = OpType.UNARY;
             this.pattern = openPattern;
             this.pattern2 = closePattern;
             this.holderType = EnclosingHolder.class;
-            this.scope = new LazyScope(this);
+            this.pscope = new LazyScope(this);
+            this.nscope = pscope;
             return this;
         }
 
         @Override
         public OpEnclosureBuilder enclosure(String openPattern, String closePattern) {
+            validatePattern(openPattern);
+            validatePattern(closePattern);
             push();
             this.id = "";
             this.type = OpType.UNARY;
             this.pattern = openPattern;
             this.pattern2 = closePattern;
             this.holderType = EnclosingHolder.class;
-            this.scope = new LazyScope(this);
+            this.pscope = new LazyScope(this);
+            this.nscope = pscope;
             return this;
         }
         
@@ -433,6 +479,7 @@ public class NanoGrammar {
         
         @Override
         public OpInfixBuilder skip(String pattern) {
+            validatePattern(pattern);
             push();
             this.pattern = pattern; 
             this.holderType = SkipHolder.class;
@@ -463,7 +510,15 @@ public class NanoGrammar {
         
         @Override
         public OpInfixBuilder scope(SyntaticScope scope) {
-            this.scope = scope;
+            this.pscope = scope;
+            this.nscope = scope;
+            return this;
+        }
+
+        @Override
+        public OpInfixBuilder scope(SyntaticScope pscope, SyntaticScope nscope) {
+            this.pscope = pscope;
+            this.nscope = nscope;
             return this;
         }
 
@@ -474,10 +529,12 @@ public class NanoGrammar {
 
         @Override
         public OpEnclosureWithRankBuilder nestedPrefixOp(String opID, String pattern) {
+            validatePattern(pattern);
             if (nested == null) {
                 nested = new Builder();
                 nested.include(toLazyScope());
-                this.scope = nested.toLazyScope();
+                this.pscope = nested.toLazyScope();
+                this.nscope = pscope;
             }
             nested.prefixOp(opID, pattern);
             return this;
@@ -490,10 +547,12 @@ public class NanoGrammar {
         
         @Override
         public OpEnclosureWithRankBuilder nestedInfixOp(String opID, String pattern) {
+            validatePattern(pattern);
             if (nested == null) {
                 nested = new Builder();
                 nested.include(toLazyScope());
-                this.scope = nested.toLazyScope();
+                this.pscope = nested.toLazyScope();
+                this.nscope = pscope;
             }
             nested.infixOp(opID, pattern);
             return this;
@@ -506,10 +565,12 @@ public class NanoGrammar {
         
         @Override
         public OpEnclosureWithRankBuilder nestedInfixOrPrefixOp(String opID, String pattern) {
+            validatePattern(pattern);
             if (nested == null) {
                 nested = new Builder();
                 nested.include(toLazyScope());
-                this.scope = nested.toLazyScope();
+                this.pscope = nested.toLazyScope();
+                this.nscope = pscope;
             }
             nested.infixOrPrefixOp(opID, pattern);
             return this;
@@ -596,14 +657,18 @@ public class NanoGrammar {
         
         String pattern;
         OperatorInfo opInfo;
+        OperatorInfo implicitPrefix;
+        OperatorInfo implicitPostfix;
 
-        public TokenHolder(String pattern, OperatorInfo opInfo) {
+        public TokenHolder(String pattern, OperatorInfo opInfo, OperatorInfo implicitPrefix, OperatorInfo implicitPostfix) {
             this.pattern = pattern;
             this.opInfo = opInfo;
+            this.implicitPrefix = implicitPrefix;
+            this.implicitPostfix = implicitPostfix;
         }
 
         public void apply(ScopeBuilder builder) {
-            builder.addToken(pattern, opInfo);
+            builder.addToken(pattern, opInfo, implicitPrefix, implicitPostfix);
         }
     }
 
@@ -625,21 +690,23 @@ public class NanoGrammar {
         OperatorInfo opInfo;
         String openPattern;
         String closePattern;
-        SyntaticScope nested;
+        SyntaticScope pscope;
+        SyntaticScope nscope;
         OperatorInfo prefixOp;
         boolean optionalPrefix;
 
-        public EnclosingHolder(OperatorInfo opInfo, String openPattern, String closePattern, SyntaticScope nested, OperatorInfo prefixOp, boolean optionalPrefix) {
+        public EnclosingHolder(OperatorInfo opInfo, String openPattern, String closePattern, SyntaticScope pscope, SyntaticScope nscope, OperatorInfo prefixOp, boolean optionalPrefix) {
             this.opInfo = opInfo;
             this.openPattern = openPattern;
             this.closePattern = closePattern;
-            this.nested = nested;
+            this.pscope = pscope;
+            this.nscope = nscope;
             this.prefixOp = prefixOp;
             this.optionalPrefix = optionalPrefix;
         }
 
         public void apply(ScopeBuilder builder) {
-            builder.addEnclosing(openPattern, opInfo, prefixOp, optionalPrefix, new NestedScope(nested, closePattern));
+            builder.addEnclosing(openPattern, opInfo, prefixOp, optionalPrefix, new NestedScope(pscope, closePattern), new NestedScope(nscope, closePattern));
         }
     }
 
@@ -702,5 +769,12 @@ public class NanoGrammar {
                 holder.apply(builder);
             }
         }        
+    }
+    
+    /** Fail fast on invalid regex */
+    private static void validatePattern(String text) {
+        if (text.startsWith("~")) {
+            Pattern.compile(text.substring(1));
+        }
     }
 }

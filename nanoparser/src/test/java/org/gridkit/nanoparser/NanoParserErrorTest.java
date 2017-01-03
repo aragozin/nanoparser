@@ -121,16 +121,16 @@ public class NanoParserErrorTest extends ReflectionActionHandler<Void> {
         addCase(cases, "a ? a", "No action for '?' producing 'Integer'")
         .sourceRef("a ? a", 
                    "  ^");
-        addCase(cases, "b | b", "No action for '|' producing 'Integer'")
+        addCase(cases, "b | b", "Required type 'Integer' but found 'String'")
         .sourceRef("b | b", 
                    "  ^");
-        addCase(cases, "strLen(1 + 1)", "No action for '+' producing 'String'")
+        addCase(cases, "strLen(1 + 1)", "Required type 'String' but found 'Integer'")
         .sourceRef("strLen(1 + 1)", 
                    "         ^");
-        addCase(cases, "strLen(1 + 1) + 1", "No action for '+' producing 'String'")
+        addCase(cases, "strLen(1 + 1) + 1", "Required type 'String' but found 'Integer'")
         .sourceRef("strLen(1 + 1) + 1", 
                    "         ^");
-        addCase(cases, "1 + strLen(1 + 1)", "No action for '+' producing 'String'")
+        addCase(cases, "1 + strLen(1 + 1)", "Required type 'String' but found 'Integer'")
         .sourceRef("1 + strLen(1 + 1)", 
                    "             ^");
         addCase(cases, "1 + boom(b | b)", "Boom")
@@ -142,6 +142,18 @@ public class NanoParserErrorTest extends ReflectionActionHandler<Void> {
         addCase(cases, "1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + boom(b | b) + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 2", "Boom")
         .sourceRef("... + 1 + 1 + 1 + 1 + 1 + 1 + boom(b | b) + 1 + 1 + 1 + 1...", 
                    "                              ^");
+        addCase(cases, "strLen(1 + 1", "Syntatic scope is not closed")
+        .sourceRef("strLen(1 + 1", 
+                   "            ^");
+        addCase(cases, "(1 + 1", "Syntatic scope is not closed")
+        .sourceRef("(1 + 1", 
+                   "      ^");
+        addCase(cases, "(1 + 1\\n", "Syntatic scope is not closed")
+        .sourceRef("(1 + 1", 
+                   "      ^");
+        addCase(cases, "1 + 1)", "Cannot parse next token")
+        .sourceRef("1 + 1)", 
+                   "     ^");
 
         return cases;
     }
@@ -167,7 +179,7 @@ public class NanoParserErrorTest extends ReflectionActionHandler<Void> {
     String sourceReference;
 
     public NanoParserErrorTest(String expression, String errorMessage, String sourceReference) {
-        this.expression = expression;
+        this.expression = expression.replace("\\n", "\n");
         this.errorMessage = errorMessage;
         this.sourceReference = sourceReference;
     }
