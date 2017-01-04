@@ -17,10 +17,7 @@ package org.gridkit.nanoparser;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.gridkit.nanoparser.NanoGrammar;
 import org.gridkit.nanoparser.NanoGrammar.SyntaticScope;
-import org.gridkit.nanoparser.NanoParser;
-import org.gridkit.nanoparser.ReflectionActionHandler;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -28,7 +25,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class MultiExpressionParserTest extends ReflectionActionHandler<Void> {
+public class MultiExpressionParserTest extends ReflectionActionSource<Void> {
 
     public static final SyntaticScope SIMPLE_GRAMMAR = NanoGrammar.newParseTable()
             .skip("~\\s") // ignore white spaces
@@ -108,9 +105,8 @@ public class MultiExpressionParserTest extends ReflectionActionHandler<Void> {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void verify() {
-        NanoParser<Void> parser = new NanoParser<Void>(new CompositeActionHandler<Void>(this), SIMPLE_GRAMMAR);
+        NanoParser<Void> parser = new NanoParser<Void>(SIMPLE_GRAMMAR, this);
         SourceReader source = new SourceReader(expressions);
         
         for(Integer result: expectedResults) {

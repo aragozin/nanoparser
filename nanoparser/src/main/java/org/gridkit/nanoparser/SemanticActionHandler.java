@@ -19,7 +19,7 @@ public interface SemanticActionHandler<C> {
 
     public TermActionHandler<?, ?>[] enumTerm(String opId, Class<?> rType);
 
-    public UnariActionHandler<?, ?, ?>[] enumUnaries(String opId, Class<?> rType, Class<?> argType);
+    public UnaryActionHandler<?, ?, ?>[] enumUnaries(String opId, Class<?> rType, Class<?> argType);
 
     public BinaryActionHandler<?, ?, ?, ?>[] enumBinaries(String opId, Class<?> rType, Class<?> leftType, Class<?> rightType);
 
@@ -34,7 +34,7 @@ public interface SemanticActionHandler<C> {
         public R apply(C parserContext, Token token);
     }
         
-    public interface UnariActionHandler<C, R, A> extends ActionHandler {
+    public interface UnaryActionHandler<C, R, A> extends ActionHandler {
 
         public Class<R> returnType();
         

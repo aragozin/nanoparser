@@ -17,10 +17,7 @@ package org.gridkit.nanoparser;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.gridkit.nanoparser.NanoGrammar;
 import org.gridkit.nanoparser.NanoGrammar.SyntaticScope;
-import org.gridkit.nanoparser.NanoParser;
-import org.gridkit.nanoparser.ReflectionActionHandler;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -28,7 +25,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class NanoParserArithmTest extends ReflectionActionHandler<Void> {
+public class NanoParserArithmTest extends ReflectionActionSource<Void> {
 
     public static final SyntaticScope SIMPLE_GRAMMAR = NanoGrammar.newParseTable()
             .skip("~\\s") // ignore white spaces
@@ -96,7 +93,7 @@ public class NanoParserArithmTest extends ReflectionActionHandler<Void> {
 
     @Test
     public void verify() {
-        NanoParser<Void> parser = new NanoParser<Void>(this, SIMPLE_GRAMMAR);
+        NanoParser<Void> parser = new NanoParser<Void>(SIMPLE_GRAMMAR, this);
         
         Assert.assertEquals(Integer.valueOf(expectedResult), parser.parse(null, Integer.class, expression));        
     }

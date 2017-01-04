@@ -32,7 +32,7 @@ public class NanoParserTest {
                 .infixOp("+", "+")
                 .infixOp("*", "*").rank(2).toScope();
         
-        NanoParser<Void> parser = new NanoParser<Void>(new SimpleParser(), scope);
+        NanoParser<Void> parser = new NanoParser<Void>(scope, new SimpleParser());
         
         assertParseResult(parser, "A+B", "[A+B]");
         assertParseResult(parser, "A+B+C", "[[A+B]+C]");
@@ -52,7 +52,7 @@ public class NanoParserTest {
                 .enclosure("()", "(", ")")
                 .toScope();
         
-        NanoParser<Void> parser = new NanoParser<Void>(new SimpleParser(), scope);
+        NanoParser<Void> parser = new NanoParser<Void>(scope, new SimpleParser());
         
 //        assertParseResult(parser, "A+B", "[A+B]");
 //        assertParseResult(parser, "A+B+C", "[[A+B]+C]");
@@ -80,7 +80,7 @@ public class NanoParserTest {
                 .enclosure("", "\'", "\'").scope(quoted)
                 .toScope();
         
-        NanoParser<Void> parser = new NanoParser<Void>(new SimpleParser(), scope);
+        NanoParser<Void> parser = new NanoParser<Void>(scope, new SimpleParser());
         
         assertParseResult(parser, "A+'BCD'", "[A+BCD]");
         assertParseResult(parser, "A + ' B C D '", "[A+ B C D ]");
@@ -115,7 +115,7 @@ public class NanoParserTest {
         NanoGrammar.extendTable(scope)
                 .enclosure("CALL", "~[A-Za-z]+\\(", ")").scope(functionArgs);
         
-        NanoParser<Void> parser = new NanoParser<Void>(new SimpleParser(), scope);
+        NanoParser<Void> parser = new NanoParser<Void>(scope, new SimpleParser());
         
 //        assertParseResult(parser, "A+x(C,D,E)", "[A+x[C, D, E]]");
         assertParseResult(parser, "x(A)+B", "[x[A]+B]");
@@ -134,7 +134,7 @@ public class NanoParserTest {
         }
     }
 
-    public static class SimpleParser extends ReflectionActionHandler<Void> {
+    public static class SimpleParser extends ReflectionActionSource<Void> {
         
         @Binary("+")
         public String strPlus(String left, String right) {

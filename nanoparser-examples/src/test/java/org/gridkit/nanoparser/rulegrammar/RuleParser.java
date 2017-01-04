@@ -4,18 +4,18 @@ import java.util.Arrays;
 
 import org.gridkit.nanoparser.NanoGrammar;
 import org.gridkit.nanoparser.NanoGrammar.SyntaticScope;
+import org.gridkit.nanoparser.ReflectionActionSource;
 import org.gridkit.nanoparser.rulegrammar.AST.BoolClause;
 import org.gridkit.nanoparser.rulegrammar.AST.Clause;
 import org.gridkit.nanoparser.rulegrammar.AST.Expr;
 import org.gridkit.nanoparser.rulegrammar.AST.Functor;
-import org.gridkit.nanoparser.rulegrammar.AST.Lit;
-import org.gridkit.nanoparser.rulegrammar.AST.Literal;
 import org.gridkit.nanoparser.rulegrammar.AST.ImplicationRule;
 import org.gridkit.nanoparser.rulegrammar.AST.InvariantRule;
+import org.gridkit.nanoparser.rulegrammar.AST.Lit;
+import org.gridkit.nanoparser.rulegrammar.AST.Literal;
 import org.gridkit.nanoparser.rulegrammar.AST.Var;
-import org.gridkit.nanoparser.ReflectionActionHandler;
 
-public class RuleParser extends ReflectionActionHandler<Void> {
+public class RuleParser extends ReflectionActionSource<Void> {
 
     public static final SyntaticScope QUOTED_STRING = NanoGrammar.newParseTable()
             .term("~[^\\\\\'\"]+")
@@ -88,11 +88,6 @@ public class RuleParser extends ReflectionActionHandler<Void> {
     @Binary("CONCAT")
     public String concat(String a, String b) {
         return a + b;
-    }
-    
-    @Convertion
-    public Expr[] exprList(Expr expr) {
-        return new Expr[]{expr};
     }
     
     @Convertion

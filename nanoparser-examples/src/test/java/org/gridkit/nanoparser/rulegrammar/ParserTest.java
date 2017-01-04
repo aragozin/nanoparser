@@ -19,7 +19,7 @@ public class ParserTest {
     @Rule
     public ParserTestHelper helper = new ParserTestHelper();
     
-    NanoParser<Void> parser = new NanoParser<Void>(new RuleParser(), RuleParser.MAIN_GRAMMAR);
+    NanoParser<Void> parser = new NanoParser<Void>(RuleParser.MAIN_GRAMMAR, new RuleParser());
     
     
 /* TESTDATA

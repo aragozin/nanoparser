@@ -5,9 +5,9 @@ import java.util.Arrays;
 import org.gridkit.nanoparser.NanoGrammar;
 import org.gridkit.nanoparser.NanoGrammar.SyntaticScope;
 import org.gridkit.nanoparser.NanoParser;
-import org.gridkit.nanoparser.ReflectionActionHandler;
+import org.gridkit.nanoparser.ReflectionActionSource;
 
-public class HeapPathParser extends ReflectionActionHandler<Void> {
+public class HeapPathParser extends ReflectionActionSource<Void> {
 
     public static final SyntaticScope QUOTED_STRING = NanoGrammar.newParseTable()
             .term("~[^\\\\\'\"]+")
@@ -68,7 +68,7 @@ public class HeapPathParser extends ReflectionActionHandler<Void> {
         ;
     }
 
-    private NanoParser<Void> parser = new NanoParser<Void>(this, HEAPPATH_MULTI) {
+    private NanoParser<Void> parser = new NanoParser<Void>(HEAPPATH_MULTI, this) {
         
         // tracing
         int deepth;
@@ -140,11 +140,6 @@ public class HeapPathParser extends ReflectionActionHandler<Void> {
         return new AnyPathStep();
     }
 
-    @Convertion
-    public HeapPathStep[] step2path(HeapPathStep step) {
-        return new HeapPathStep[]{step};
-    }
-    
     @Unary(NanoGrammar.ACTION_EVAL)
     public HeapPathStep[] rootConversion(@Convertible HeapPathStep[] step) {
         return step;
@@ -250,11 +245,6 @@ public class HeapPathParser extends ReflectionActionHandler<Void> {
         return new ClassMatch(pattern, false);
     }
 
-    @Convertion() // TODO automatic upcast conversion
-    public TypeMatch upcast(ClassMatch match) {
-        return match;
-    }
-    
     @Binary(".")
     public ClassMatch classMath(@Convertible ClassMatch a, String b) {
         return new ClassMatch(a.getPattern() + "." + b, false);

@@ -5,11 +5,11 @@ import org.gridkit.nanoparser.NanoGrammar;
 import org.gridkit.nanoparser.NanoGrammar.SyntaticScope;
 import org.gridkit.nanoparser.NanoParser;
 import org.gridkit.nanoparser.ParserException;
-import org.gridkit.nanoparser.ReflectionActionHandler;
+import org.gridkit.nanoparser.ReflectionActionSource;
 import org.junit.Assert;
 import org.junit.Test;
 
-    public class SimpleArithmeticParser extends ReflectionActionHandler<Void> {
+    public class SimpleArithmeticParser extends ReflectionActionSource<Void> {
     
         public static final SyntaticScope SIMPLE_GRAMMAR = NanoGrammar.newParseTable()
                               // leading tilde (~) in token use for RegEx
@@ -77,7 +77,7 @@ import org.junit.Test;
         @Test
         public void test() {
             
-            NanoParser<Void> parser = new NanoParser<Void>(this, SIMPLE_GRAMMAR);
+            NanoParser<Void> parser = new NanoParser<Void>(SIMPLE_GRAMMAR, this);
             
             try {
                 Assert.assertEquals(Integer.valueOf(3), parser.parse(null, Integer.class, "1+2"));

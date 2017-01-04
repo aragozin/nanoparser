@@ -26,7 +26,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class NanoParserErrorTest extends ReflectionActionHandler<Void> {
+public class NanoParserErrorTest extends ReflectionActionSource<Void> {
 
     public static final SyntaticScope SIMPLE_GRAMMAR = NanoGrammar.newParseTable()
             .skip("~\\s") // ignore white spaces
@@ -186,7 +186,7 @@ public class NanoParserErrorTest extends ReflectionActionHandler<Void> {
 
     @Test
     public void verify() {
-        NanoParser<Void> parser = new NanoParser<Void>(this, SIMPLE_GRAMMAR);
+        NanoParser<Void> parser = new NanoParser<Void>(SIMPLE_GRAMMAR, this);
         
         try {
             parser.parse(null, Integer.class, expression);

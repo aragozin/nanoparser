@@ -26,7 +26,7 @@ import org.gridkit.nanoparser.NanoGrammar.ScopeBuilder;
 import org.gridkit.nanoparser.NanoGrammar.SyntaticScope;
 import org.gridkit.nanoparser.SemanticActionHandler.BinaryActionHandler;
 import org.gridkit.nanoparser.SemanticActionHandler.TermActionHandler;
-import org.gridkit.nanoparser.SemanticActionHandler.UnariActionHandler;
+import org.gridkit.nanoparser.SemanticActionHandler.UnaryActionHandler;
 
 public class NanoParser<C> {
 
@@ -38,6 +38,20 @@ public class NanoParser<C> {
     public NanoParser(SemanticActionHandler<C> actionDispatcher, SyntaticScope scope) {
         this.actionDispatcher = actionDispatcher;
         this.parseTable = new ParseTable(scope);
+    }
+    
+    @SuppressWarnings("unchecked")
+	public NanoParser(SyntaticScope scope, SematicActionSource<C> actionSource) {
+    	this(new MultiSourceSemanticHandler<C>(new SematicActionSource[]{actionSource}), scope);
+    }
+
+    @SuppressWarnings("unchecked")
+    public NanoParser(SyntaticScope scope, SematicActionSource<C> actionSource1, SematicActionSource<C> actionSource2) {
+    	this(new MultiSourceSemanticHandler<C>(new SematicActionSource[]{actionSource1, actionSource2}), scope);
+    }
+
+    public NanoParser(SyntaticScope scope, SematicActionSource<C>... actionSources) {
+    	this(new MultiSourceSemanticHandler<C>(actionSources), scope);
     }
     
     /**
@@ -243,9 +257,9 @@ public class NanoParser<C> {
             return mapActions(type, node.leftNode, node.leftNode.token.offset());
         }
         else {
-            UnariActionHandler<?, ?, ?>[] hh = actionDispatcher.enumUnaries(node.op.id(), type, null);
+            UnaryActionHandler<?, ?, ?>[] hh = actionDispatcher.enumUnaries(node.op.id(), type, null);
             Error fe = null;
-            for(UnariActionHandler<?, ?, ?> h: hh) {
+            for(UnaryActionHandler<?, ?, ?> h: hh) {
                 Class<?> at = h.argType();
                 Error e = mapActions(at, node.leftNode, node.leftNode.token.offset());
                 if (e != null) {
@@ -354,7 +368,7 @@ public class NanoParser<C> {
         if (NanoGrammar.ACTION_NOOP.equals(id)) {
             return argType;
         }
-        UnariActionHandler<?, ?, ?>[] hh = actionDispatcher.enumUnaries(id, null, null);
+        UnaryActionHandler<?, ?, ?>[] hh = actionDispatcher.enumUnaries(id, null, null);
         return hh.length > 0 ? hh[0].returnType() : null;
     }
 
@@ -394,7 +408,7 @@ public class NanoParser<C> {
         else {
             try {
                 @SuppressWarnings("unchecked")
-                UnariActionHandler<C, ?, Object> h = (UnariActionHandler<C, ?, Object>) node.inferedHandler;
+                UnaryActionHandler<C, ?, Object> h = (UnaryActionHandler<C, ?, Object>) node.inferedHandler;
                 return h.apply(parserContext, node.token, applyActions(parserContext, type, node.leftNode));
             }
             catch(SemanticExpection e) {

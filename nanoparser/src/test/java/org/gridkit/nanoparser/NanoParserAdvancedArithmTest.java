@@ -18,10 +18,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import org.gridkit.nanoparser.NanoGrammar;
 import org.gridkit.nanoparser.NanoGrammar.SyntaticScope;
-import org.gridkit.nanoparser.NanoParser;
-import org.gridkit.nanoparser.ReflectionActionHandler;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -29,7 +26,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class NanoParserAdvancedArithmTest extends ReflectionActionHandler<Void> {
+public class NanoParserAdvancedArithmTest extends ReflectionActionSource<Void> {
 
     public static final SyntaticScope SIMPLE_GRAMMAR = NanoGrammar.newParseTable()
             .skip("~\\s") // ignore white spaces
@@ -112,11 +109,12 @@ public class NanoParserAdvancedArithmTest extends ReflectionActionHandler<Void> 
         }
     }
 
-    @Convertion
-    public int[] int2array(Integer a) {
-        return new int[]{a};
-    }
-
+// Now value -> singleton conversion is automatic
+//    @Convertion
+//    public int[] int2array(Integer a) {
+//        return new int[]{a};
+//    }
+//
     @Parameters(name = "{0} == {1}")
     public static List<Object[]> getExpressions() {
         List<Object[]> cases = new ArrayList<Object[]>();
@@ -156,7 +154,7 @@ public class NanoParserAdvancedArithmTest extends ReflectionActionHandler<Void> 
     @Test
     public void verify() {
         try {
-            NanoParser<Void> parser = new NanoParser<Void>(this, SIMPLE_GRAMMAR);
+            NanoParser<Void> parser = new NanoParser<Void>(SIMPLE_GRAMMAR, this);
             
             Assert.assertEquals(Integer.valueOf(expectedResult), parser.parse(null, Integer.class, expression));
         }
