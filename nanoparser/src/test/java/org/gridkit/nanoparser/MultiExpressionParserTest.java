@@ -108,8 +108,9 @@ public class MultiExpressionParserTest extends ReflectionActionHandler<Void> {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void verify() {
-        NanoParser<Void> parser = new NanoParser<Void>(this, SIMPLE_GRAMMAR);
+        NanoParser<Void> parser = new NanoParser<Void>(new CompositeActionHandler<Void>(this), SIMPLE_GRAMMAR);
         SourceReader source = new SourceReader(expressions);
         
         for(Integer result: expectedResults) {

@@ -12,7 +12,7 @@ import java.util.regex.Pattern;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 
-public class TestDataInline extends TestWatcher {
+class TestDataInline extends TestWatcher {
 
     private String sourcePath;
     private String[] textLines;

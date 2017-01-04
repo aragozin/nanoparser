@@ -72,6 +72,11 @@ public class SourceReader {
         return t;
     }
     
+    @Override
+    public String toString() {
+        return text.subSequence(offset, text.length()).toString();
+    }
+    
     private static class PToken implements Token {
         
         CharSequence text;

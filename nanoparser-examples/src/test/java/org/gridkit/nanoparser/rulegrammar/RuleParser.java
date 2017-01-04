@@ -30,8 +30,8 @@ public class RuleParser extends ReflectionActionHandler<Void> {
             .skip("~\\s") // ignore white spaces
             .enclosure("STRING", "\"", "\"").scope(QUOTED_STRING)
             .term("NUM", "~\\d+([.]\\d+)?") // simple decimal token
-            .term("VAR", "~[A-Z][A-Z0-9_]*(\\.[A-Z][A-Z0-9_]*)*") // upper case - var
-            .term("LIT", "~[a-z_][a-z0-9_]*(\\.[A-Z][A-Z0-9_]*)*") // lower case - lit
+            .term("VAR", "~[A-Z][A-Za-z0-9_]*(\\.[A-Za-z][A-Za-z0-9_]*)*") // upper case - var
+            .term("LIT", "~[a-z_][A-Za-z0-9_]*(\\.[A-Za-z][A-Za-z0-9_]*)*") // lower case - lit
             .enclosure("(", ")")
                 .implicitPrefixOp("()", true)
                 .nestedInfixOp("+").rank(4)

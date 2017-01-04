@@ -722,4 +722,22 @@ public abstract class ReflectionActionHandler<C> implements SemanticActionHandle
     private static <E extends Throwable> void throwAny(Throwable e) throws E {
         throw (E)e;
     }
+    
+    /**
+     * Utility method
+     */
+    protected static <T> T[] append(T[] a, T... b) {
+        T[] r = Arrays.copyOf(a, a.length + b.length);
+        System.arraycopy(b, 0, r, a.length, b.length);
+        return r;       
+    }
+
+    /**
+     * Utility method
+     */
+    protected static <T> T[] append(T[] a, T b) {
+        T[] r = Arrays.copyOf(a, a.length + 1);
+        r[a.length] = b;
+        return r;       
+    }
 }

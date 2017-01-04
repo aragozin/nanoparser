@@ -106,7 +106,9 @@ public class NanoGrammar {
         /**
          * Tokens would be ignored
          */
-        public OpInfixBuilder<T> skip(String pattern);
+        public ParserBuilder<T> skip(String pattern);
+
+        public ParserBuilder<T> skipSpace();
         
         public SyntaticScope toLazyScope();
     }
@@ -478,12 +480,17 @@ public class NanoGrammar {
         }
         
         @Override
-        public OpInfixBuilder skip(String pattern) {
+        public ParserBuilder skip(String pattern) {
             validatePattern(pattern);
             push();
             this.pattern = pattern; 
             this.holderType = SkipHolder.class;
             return this;
+        }
+
+        @Override
+        public ParserBuilder skipSpace() {
+            return skip("~\\s+");
         }
 
         @Override
