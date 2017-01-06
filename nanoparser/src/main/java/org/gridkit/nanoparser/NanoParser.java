@@ -17,8 +17,6 @@ package org.gridkit.nanoparser;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.gridkit.nanoparser.NanoGrammar.OpType;
 import org.gridkit.nanoparser.NanoGrammar.OperatorInfo;
@@ -98,14 +96,14 @@ public class NanoParser<C> {
                 continue;
             }
             if (table.escapeToken != null) {
-                Token tkn = stream.matchToken(table.escapeToken);
+                Token tkn = stream.matchToken(table.escapeToken, table.skipPattern);
                 if (tkn != null) {
                     return parser.collapse(tkn);
                 }
             }
             Token prev = stream.emptyToken();
             for(ParseTableElement pat: table.table) {
-                Token tkn = stream.matchToken(pat.matcher);
+                Token tkn = stream.matchToken(pat.matchers, table.skipPattern);
                 if (tkn != null) {
                     if (pat.term) {
                         if (pat.operatorInfo.id().equals(eoeToken)) {
@@ -499,16 +497,16 @@ public class NanoParser<C> {
 
         private List<ParseTableElement> table = new ArrayList<NanoParser.ParseTableElement>();
         private OperatorInfo glueToken;
-        private Matcher escapeToken;
-        private Matcher skipPattern;
+        private TokenMatcher[] escapeToken;
+        private MultiMatcher skipPattern;
 
         public ParseTable(SyntaticScope scope) {
             scope.apply(this);
         }
         
         @Override
-        public void addEnclosing(String pattern, OperatorInfo op, OperatorInfo prefixOp, boolean optionalPrefix, SyntaticScope perfixedNestedScope, SyntaticScope normalNestedScope) {
-            ParseTableElement e = new ParseTableElement(pattern);
+        public void addEnclosing(TokenMatcher[] matchers, OperatorInfo op, OperatorInfo prefixOp, boolean optionalPrefix, SyntaticScope perfixedNestedScope, SyntaticScope normalNestedScope) {
+            ParseTableElement e = new ParseTableElement(matchers);
             e.operatorInfo = op;
             e.enclosing = true;
             e.psubscope = perfixedNestedScope;
@@ -527,28 +525,23 @@ public class NanoParser<C> {
         }
         
         @Override
-        public void addOperator(String pattern, OperatorInfo op) {
-            ParseTableElement e = new ParseTableElement(pattern);
+        public void addOperator(TokenMatcher[] matchers, OperatorInfo op) {
+            ParseTableElement e = new ParseTableElement(matchers);
             e.operatorInfo = op;
             table.add(e);
         }
         
         @Override
-        public void addScopeEscapeToken(String pattern) {
+        public void addScopeEscapeToken(TokenMatcher[] matchers) {
             if (escapeToken != null) {
                 throw new IllegalArgumentException("Cannot define second escape token");
             }
-            if (pattern.startsWith("~")) {
-                escapeToken = Pattern.compile(pattern.substring(1)).matcher("");
-            }
-            else {
-                escapeToken = Pattern.compile(Pattern.quote(pattern)).matcher("");
-            }
+            escapeToken = matchers;
         }
         
         @Override
-        public void addToken(String pattern, OperatorInfo op, OperatorInfo implicitPrefix, OperatorInfo implicitPostfix) {
-            ParseTableElement e = new ParseTableElement(pattern);
+        public void addToken(TokenMatcher[] tmatcher, OperatorInfo op, OperatorInfo implicitPrefix, OperatorInfo implicitPostfix) {
+            ParseTableElement e = new ParseTableElement(tmatcher);
             e.operatorInfo = op;
             e.term = true;
             if (implicitPrefix != null) {
@@ -563,18 +556,11 @@ public class NanoParser<C> {
         }
         
         @Override
-        public void addSkipToken(String pattern) {
-            if (pattern.startsWith("~")) {
-                pattern = pattern.substring(1);
-            }
-            else {
-                pattern = Pattern.quote(pattern);
-            }
+        public void addSkipToken(TokenMatcher pattern) {
             if (skipPattern != null) {
-                pattern = "(" + pattern + ")|(" + skipPattern.pattern().pattern() + ")";
-                skipPattern = null;
+                skipPattern = skipPattern.append(pattern);
             }
-            skipPattern = Pattern.compile(pattern).matcher("");
+            skipPattern = new MultiMatcher(pattern);
         }
     }
     
@@ -727,7 +713,7 @@ public class NanoParser<C> {
     
     private static class ParseTableElement {
         
-        Matcher matcher;
+        TokenMatcher[] matchers;
         boolean term;
         boolean enclosing;
         OperatorInfo operatorInfo;
@@ -741,13 +727,8 @@ public class NanoParser<C> {
         ParseTable psubtable;
         ParseTable nsubtable;
         
-        public ParseTableElement(String pattern) {
-            if (pattern.startsWith("~")) {
-                matcher = Pattern.compile(pattern.substring(1)).matcher("");
-            }
-            else {
-                matcher = Pattern.compile(Pattern.quote(pattern)).matcher("");
-            }
+        public ParseTableElement(TokenMatcher[] matchers) {
+        	this.matchers = matchers;
         }
 
         public synchronized ParseTable subtable(boolean implPrefix) {
@@ -769,13 +750,13 @@ public class NanoParser<C> {
         
         public String toString() {
             if (term) {
-                return "TERM{" + matcher.pattern().toString() + "}";
+                return "TERM{" + matchersToString(matchers) + "}";
             }
             else if (enclosing) {
-                return "ENC{" + matcher.pattern().toString() + "} -> " + psubscope + "|" + nsubscope;
+                return "ENC{" + matchersToString(matchers) + "} -> " + psubscope + "|" + nsubscope;
             }
             else {
-                return "OP{" + matcher.pattern() + "} -> " + operatorInfo.id();
+                return "OP{" + matchersToString(matchers) + "} -> " + operatorInfo.id();
             }
         }
     }
@@ -839,5 +820,16 @@ public class NanoParser<C> {
             sb.append("|}");
             return sb.toString();
         }
+    }
+    
+    private static String matchersToString(TokenMatcher[] matchers) {
+    	StringBuilder sb = new StringBuilder();
+    	for(TokenMatcher tm: matchers) {
+    		if (sb.length() > 0) {
+    			sb.append(" ");
+    		}
+    		sb.append(tm.toString());
+    	}
+    	return sb.toString();
     }
 }

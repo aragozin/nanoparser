@@ -31,10 +31,13 @@ public class NanoParserAdvancedArithmTest extends ReflectionActionSource<Void> {
     public static final SyntaticScope SIMPLE_GRAMMAR = NanoGrammar.newParseTable()
             .skip("~\\s") // ignore white spaces
             .term("DECIMAL", "~\\d+") // simple decimal token
+            .term("CALL", tkn("~(min|max)", "(", ")")) // no arg call as term
             .infixOp("+")
             .infixOrPrefixOp("-")
             .infixOp("*").rank(2)
             .enclosure("(", ")")
+            .enclosure("CALL", tkn("~(min|max)", "("), ")") // call matcher
+                .nestedInfixOp(",")
             .enclosure("{", "}")
                 .nestedInfixOp(",")
             .enclosure("[", "]")
@@ -109,6 +112,27 @@ public class NanoParserAdvancedArithmTest extends ReflectionActionSource<Void> {
         }
     }
 
+    @Term("CALL")
+    public Integer call(@Source Token func, @Source Token p1, @Source Token p2, String body) {
+    	return 0;
+    }
+    
+    @Unary("CALL")
+    public Integer call(@Source Token func, @Source Token par, @Convertible int[] array) {
+    	int m = array[0];
+    	if ("min".equals(func.tokenBody())) {
+    		for(int n: array) {
+    			m = Math.min(m, n);
+    		}
+    	}
+    	else {
+    		for(int n: array) {
+    			m = Math.max(m, n);
+    		}    		
+    	}
+    	return m;
+    }
+    
 // Now value -> singleton conversion is automatic
 //    @Convertion
 //    public int[] int2array(Integer a) {
@@ -135,6 +159,10 @@ public class NanoParserAdvancedArithmTest extends ReflectionActionSource<Void> {
         addCase(cases, "({1, 2, 3} + {4, 5, 6})[4]", 5);
         addCase(cases, "({1, 2, 3} * 2 + {3, 4, 5})[2]", 6);
         addCase(cases, "({1, 2, 3} + 2 * {3, 4, 5})[4]", 8);
+
+        addCase(cases, "max(1, 2) + 3", 5);
+        addCase(cases, "min (1, 2, 3) + 2", 3);
+        addCase(cases, "2 + min( )", 2);
 
         return cases;
     }

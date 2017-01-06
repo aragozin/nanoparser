@@ -652,7 +652,7 @@ public abstract class ReflectionActionSource<C> implements SematicActionSource<C
         	else if (tokenArg.length > 1) {
         		if (tkn instanceof MultiToken) {
         			Token[] tkns = ((MultiToken) tkn).tokens();
-        			for(int i = 0; i != args.length; ++i) {
+        			for(int i = 0; i != tokenArg.length; ++i) {
         				if (i < tkns.length) {
         					args[tokenArg[i]] = tkns[i];
         				}
@@ -791,5 +791,21 @@ public abstract class ReflectionActionSource<C> implements SematicActionSource<C
         T[] r = Arrays.copyOf(a, a.length + 1);
         r[a.length] = b;
         return r;       
+    }
+    
+    /**
+     * Utility method to produce compound token definitions.
+     */
+    protected static TokenMatcher[] tkn(String... tokens) {
+    	TokenMatcher[] r = new TokenMatcher[tokens.length];
+    	for(int i = 0; i != tokens.length; ++i) {
+    		if (tokens[i].startsWith("~")) {
+    			r[i] = Tokens.regExMatcher(tokens[i].substring(1));
+    		}
+    		else {
+    			r[i] = Tokens.matcher(tokens[i]);
+    		}
+    	}
+    	return r;
     }
 }

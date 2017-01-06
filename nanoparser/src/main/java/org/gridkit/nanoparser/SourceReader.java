@@ -1,7 +1,5 @@
 package org.gridkit.nanoparser;
 
-import java.util.regex.Matcher;
-
 /**
  * Wrapper over {@link CharSequence} used to trace
  * current parsing coordinates.
@@ -35,32 +33,70 @@ public class SourceReader {
         return text.length() <= offset;
     }
     
-    public Token matchToken(Matcher matcher) {
-        matcher.reset(text);
-        matcher.region(offset, text.length());
-        if (matcher.lookingAt()) {
-            PToken t = new PToken();
-            t.text = text;
-            t.body = matcher.group(0);
-            t.offset = offset;
-            t.line = line;
-            t.pos = pos;
-            offset += t.body.length();
-            for(int i = 0; i != t.body.length(); ++i) {
-                if (t.body.charAt(0) == '\n') {
-                    ++line;
-                    pos = 0;
-                }
-                else {
-                    ++pos;
-                }
-            }
-            return t;
-        }
-        else {
-            return null;
-        }
-    }        
+    public Token matchToken(TokenMatcher matcher) {
+    	int n = matcher.match(text, offset);
+    	if (n > 0) {
+    		PToken t = makeToken(n);
+    		offset += n;
+    		for(int i = 0; i != t.body.length(); ++i) {
+    			if (t.body.charAt(0) == '\n') {
+    				++line;
+    				pos = 0;
+    			}
+    			else {
+    				++pos;
+    			}
+    		}
+    		return t;
+    	}
+    	else {
+    		return null;
+    	}
+    }
+
+    public Token matchToken(TokenMatcher[] multiToken, TokenMatcher skip) {
+    	if (multiToken.length == 1) {
+    		return matchToken(multiToken[0]);
+    	}
+    	else {
+    	
+	    	int soffs = offset;
+	    	int sline = line;
+	    	int spos = pos;
+	    	
+	    	Token[] r = new Token[multiToken.length];
+	    	for(int i = 0; i != multiToken.length; ++i) {
+	    		r[i] = matchToken(multiToken[i]);
+	    		if (r[i] == null) {
+	    			// not matched
+	    			offset = soffs;
+	    			line = sline;
+	    			pos = spos;
+	    			return null;
+	    		}
+	    		// skip skippable
+	    		while(matchToken(skip) != null) {};
+	    	}    	
+	    	
+	    	MToken mtkn = new MToken(r);
+	    	mtkn.text = text;
+	    	mtkn.body = text.subSequence(soffs, offset).toString();
+	    	mtkn.offset = soffs;
+	    	mtkn.line = sline;
+	    	mtkn.pos = spos;
+			return mtkn;
+    	}
+    }
+    
+	private PToken makeToken(int n) {
+		PToken t = new PToken();
+		t.text = text;
+		t.body = text.subSequence(offset, offset + n).toString();
+		t.offset = offset;
+		t.line = line;
+		t.pos = pos;
+		return t;
+	}        
     
     public Token emptyToken() {
         PToken t = new PToken();
@@ -125,4 +161,18 @@ public class SourceReader {
             return body;
         }
     }    
+    
+    private static class MToken extends PToken implements MultiToken {
+    	
+    	private final Token[] subtokens;
+    	
+    	public MToken(Token[] subtokens) {
+			this.subtokens = subtokens;
+		}
+
+		@Override
+		public Token[] tokens() {
+			return subtokens;
+		}
+    }
 }
