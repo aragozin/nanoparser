@@ -52,13 +52,17 @@ public class NanoParser<C> {
     	this(new MultiSourceSemanticHandler<C>(actionSources), scope);
     }
     
+    public <T> T parse(C parserContext, Class<T> type, String text) {
+    	SourceReader source = new SourceReader(text);
+    	return parse(parserContext, type, source);
+    }
+
     /**
      * Parses whole text as single expression.
      */
-    public <T> T parse(C parserContext, Class<T> type, CharSequence source) {
-        SourceReader state = new SourceReader(source);
-        ParseNode node =  parse(state, parseTable, null);
-        return evalNode(parserContext, type, state, node);
+    public <T> T parse(C parserContext, Class<T> type, SourceReader source) {
+        ParseNode node =  parse(source, parseTable, null);
+        return evalNode(parserContext, type, source, node);
     }
 
     /**
@@ -156,6 +160,13 @@ public class NanoParser<C> {
                                 parser.pushToken(prefOp);
                                 implPrefix = true;
                             }
+                        }
+                        if (table.glueToken != null && parser.isOperatorExpected()) {
+                            ParseNode node = new ParseNode();
+                            node.op = table.glueToken;
+                            node.token = prev;
+                            node.rank = table.glueToken.rank();
+                            parser.pushToken(node);                                                    	
                         }
                         ParseNode node = new ParseNode();
                         node.rule = pat;
@@ -560,7 +571,9 @@ public class NanoParser<C> {
             if (skipPattern != null) {
                 skipPattern = skipPattern.append(pattern);
             }
-            skipPattern = new MultiMatcher(pattern);
+            else {
+            	skipPattern = new MultiMatcher(pattern);
+            }
         }
     }
     
