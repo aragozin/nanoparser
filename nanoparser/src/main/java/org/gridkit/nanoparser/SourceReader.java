@@ -34,20 +34,25 @@ public class SourceReader {
     }
     
     public Token matchToken(TokenMatcher matcher) {
-    	int n = matcher.match(text, offset);
-    	if (n > 0) {
-    		PToken t = makeToken(n);
-    		offset += n;
-    		for(int i = 0; i != t.body.length(); ++i) {
-    			if (t.body.charAt(0) == '\n') {
-    				++line;
-    				pos = 0;
-    			}
-    			else {
-    				++pos;
-    			}
-    		}
-    		return t;
+    	if (offset < text.length()) {
+	    	int n = matcher.match(text, offset);
+	    	if (n > 0) {
+	    		PToken t = makeToken(n);
+	    		offset += n;
+	    		for(int i = 0; i != t.body.length(); ++i) {
+	    			if (t.body.charAt(0) == '\n') {
+	    				++line;
+	    				pos = 0;
+	    			}
+	    			else {
+	    				++pos;
+	    			}
+	    		}
+	    		return t;
+	    	}
+	    	else {
+	    		return null;
+	    	}
     	}
     	else {
     		return null;
