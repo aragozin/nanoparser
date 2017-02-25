@@ -19,7 +19,11 @@ public class Tokens {
 	}
 	
 	public static TokenMatcher comment(String start, String end) {
-		return new MultiLineCommentMatcher(matcher(start), matcher(end));
+		return new CommentMatcher(matcher(start), matcher(end));
+	}
+
+	public static TokenMatcher comment(TokenMatcher start, TokenMatcher end) {
+		return new CommentMatcher(start, end);
 	}
 	
 }

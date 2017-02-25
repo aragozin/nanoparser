@@ -114,7 +114,9 @@ public class NanoGrammar {
          */
         public ParserBuilder<T> skip(String pattern);
 
-        public ParserBuilder<T> skip(TokenMatcher[] pattern);
+        public ParserBuilder<T> skip(String from, String to);
+
+        public ParserBuilder<T> skip(TokenMatcher pattern);
 
         public ParserBuilder<T> skipSpace();
         
@@ -511,18 +513,21 @@ public class NanoGrammar {
         }
 
         @Override
-		public ParserBuilder skip(TokenMatcher[] pattern) {
-			for(TokenMatcher tm: pattern) {
-				push();
-	            this.skipPattern = tm; 
-	            this.holderType = SkipHolder.class;
-			}
+        public ParserBuilder skip(String start, String end) {
+        	return skip(Tokens.comment(simpleMatcher(start), simpleMatcher(end)));
+        }
+
+        @Override
+		public ParserBuilder skip(TokenMatcher pattern) {
+			push();
+            this.skipPattern = pattern; 
+            this.holderType = SkipHolder.class;
 			return this;
 		}
 
 		@Override
         public ParserBuilder skipSpace() {
-            return skip(new TokenMatcher[]{Tokens.whitespace()});
+            return skip(Tokens.whitespace());
         }
 
         @Override

@@ -1,11 +1,11 @@
 package org.gridkit.nanoparser;
 
-class MultiLineCommentMatcher implements TokenMatcher {
+class CommentMatcher implements TokenMatcher {
 
 	private final TokenMatcher start;
 	private final TokenMatcher end;
 	
-	public MultiLineCommentMatcher(TokenMatcher start, TokenMatcher end) {
+	public CommentMatcher(TokenMatcher start, TokenMatcher end) {
 		this.start = start;
 		this.end = end;
 	}
