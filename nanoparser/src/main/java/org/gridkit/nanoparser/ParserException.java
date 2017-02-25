@@ -57,7 +57,7 @@ public class ParserException extends RuntimeException {
         if (ls >= parseText.length()) {
             ls = parseText.length() - 1;
         }
-        boolean atEol = ls >= 0 & parseText.charAt(ls) == '\n';
+        boolean atEol = ls >= 0 && parseText.charAt(ls) == '\n';
         if (atEol) {
             --ls;
             --toffs;
