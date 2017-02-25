@@ -68,8 +68,11 @@ public class MultiSourceSemanticHandler<C> implements SemanticActionHandler<C> {
 		if (ua.convertibleArgTypes() == null) {
 			// default convertible
 			for(Converter<C> c: converters) {
-				if (ua.argType().isAssignableFrom(c.returnType())) {
+				if (isAssignable(ua.argType(), c.returnType())) {
 					addAction(ua.opId(), convertedHandler(ua, c));
+				}
+				else if (isAssignableElement(ua.argType(), c.returnType())) {
+					addAction(ua.opId(), convertedHandler(ua, arrayConverter(ua.argType(), c)));
 				}
 			}
 			if (ua.argType().isArray()) {
@@ -82,9 +85,12 @@ public class MultiSourceSemanticHandler<C> implements SemanticActionHandler<C> {
 				if (!ua.argType().isAssignableFrom(c)) {
 					// ignoring default type binding
 					for(Converter<C> cc: converters) {
-						if (ua.argType().isAssignableFrom(cc.returnType()) && c.isAssignableFrom(cc.inputType())) {
+						if (isAssignable(ua.argType(), cc.returnType()) && isAssignable(c,cc.inputType())) {
 							addAction(ua.opId(), convertedHandler(ua, cc));
 							continue typeCycle;
+						}
+						else if (isAssignableElement(ua.argType(), cc.returnType()) && isAssignable(c,cc.inputType())) {
+							addAction(ua.opId(), convertedHandler(ua, arrayConverter(ua.argType(), cc)));
 						}
 					}
 					if (ua.argType().isArray() && ua.argType().getComponentType().isAssignableFrom(c)) {
@@ -102,8 +108,11 @@ public class MultiSourceSemanticHandler<C> implements SemanticActionHandler<C> {
 		if (ba.convertibleLeftTypes() == null) {
 			// default convertible
 			for(Converter<C> c: converters) {
-				if (ba.leftType().isAssignableFrom(c.returnType())) {
+				if (isAssignable(ba.leftType(), c.returnType())) {
 					processActionVariants(converters, ba, c);
+				}
+				else if (isAssignableElement(ba.leftType(), c.returnType())) {
+					processActionVariants(converters, ba, arrayConverter(ba.leftType(), c));
 				}
 			}
 			if (ba.leftType().isArray()) {
@@ -116,8 +125,12 @@ public class MultiSourceSemanticHandler<C> implements SemanticActionHandler<C> {
 				if (!ba.leftType().isAssignableFrom(c)) {
 					// ignoring default type binding
 					for(Converter<C> cc: converters) {
-						if (ba.leftType().isAssignableFrom(cc.returnType()) && c.isAssignableFrom(cc.inputType())) {
+						if (isAssignable(ba.leftType(), cc.returnType()) && isAssignable(c, cc.inputType())) {
 							processActionVariants(converters, ba, cc);
+							continue typeCycle;
+						}
+						else if (isAssignableElement(ba.leftType(), cc.returnType()) && isAssignable(c, cc.inputType())) {
+							processActionVariants(converters, ba, arrayConverter(ba.leftType(), cc));
 							continue typeCycle;
 						}
 					}
@@ -137,8 +150,11 @@ public class MultiSourceSemanticHandler<C> implements SemanticActionHandler<C> {
 		if (ba.convertibleRightTypes() == null) {
 			// default convertible
 			for(Converter<C> c: converters) {
-				if (ba.rightType().isAssignableFrom(c.returnType())) {
+				if (isAssignable(ba.rightType(), c.returnType())) {
 					addAction(ba.opId(), convertedHandler(ba, ca, c));
+				}
+				else if (isAssignableElement(ba.rightType(), c.returnType())) {
+					addAction(ba.opId(), convertedHandler(ba, ca, arrayConverter(ba.rightType(), c)));
 				}
 			}
 			if (ba.rightType().isArray()) {
@@ -151,8 +167,12 @@ public class MultiSourceSemanticHandler<C> implements SemanticActionHandler<C> {
 				if (!ba.rightType().isAssignableFrom(c)) {
 					// ignoring default type binding
 					for(Converter<C> cc: converters) {
-						if (ba.rightType().isAssignableFrom(cc.returnType()) && c.isAssignableFrom(cc.inputType())) {
+						if (isAssignable(ba.rightType(), cc.returnType()) && isAssignable(c, cc.inputType())) {
 							addAction(ba.opId(), convertedHandler(ba, ca, cc));
+							continue typeCycle;
+						}
+						else if (isAssignableElement(ba.rightType(), cc.returnType()) && isAssignable(c, cc.inputType())) {
+							addAction(ba.opId(), convertedHandler(ba, ca, arrayConverter(ba.rightType(), cc)));
 							continue typeCycle;
 						}
 					}
@@ -167,17 +187,22 @@ public class MultiSourceSemanticHandler<C> implements SemanticActionHandler<C> {
 
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	private Converter<C> arrayConverter(Class<?> arrayType) {
-		return new ArrayConverter(arrayType);
+		return new ArrayConverter(arrayType, null);
+	}
+
+	@SuppressWarnings({ "unchecked", "rawtypes" })
+	private Converter<C> arrayConverter(Class<?> arrayType, Converter<C> cvt) {
+		return new ArrayConverter(arrayType, cvt);
 	}
 	
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	private UnaryActionHandler<C, ?, ?> convertedHandler(UnaryAction<C> ua, Converter<C> c) {
-		return new UnaryConvertedHandler(ua.handler(), c.handler());
+		return new UnaryConvertedHandler(ua.opId(), ua.handler(), c.handler());
 	}
 	
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	private BinaryActionHandler<C, ?, ?, ?> convertedHandler(BinaryAction<C> ba, Converter<C> ca, Converter<C> cb) {
-		return new BinaryConvertedHandler(ba.handler(), ca == null ? null : ca.handler(), cb == null ? null : cb.handler());
+		return new BinaryConvertedHandler(ba.opId(), ba.handler(), ca == null ? null : ca.handler(), cb == null ? null : cb.handler());
 	}
 
 	private void addAction(String opId, UnaryActionHandler<C, ?, ?> handler) {
@@ -446,21 +471,24 @@ public class MultiSourceSemanticHandler<C> implements SemanticActionHandler<C> {
 		}		
 	}
 
+	@SuppressWarnings("rawtypes")
 	private static class ArrayConverter<C, RA, R> implements UnaryActionHandler<C, RA, R>, Converter<C> {
 
 		private final Class<R> arg;
 		private final Class<RA> result;
+		private final UnaryActionHandler cvt;
 		
 		@SuppressWarnings("unchecked")
-		public ArrayConverter(Class<RA> type) {
+		public ArrayConverter(Class<RA> type, Converter<C> cvt) {
 			Class<?> ca = (Class<R>) type.getComponentType();			
 			this.arg = (Class<R>) (ca.isPrimitive() ? box(ca) : ca);
 			this.result = type;
+			this.cvt = cvt == null ? null : cvt.handler();
 		}
 
 		@Override
 		public Class<?> inputType() {
-			return inputType();
+			return cvt == null ? arg : cvt.argType();
 		}
 
 		@Override
@@ -475,15 +503,17 @@ public class MultiSourceSemanticHandler<C> implements SemanticActionHandler<C> {
 		}
 
 		@Override
+		@SuppressWarnings("unchecked")
 		public Class<R> argType() {
-			return arg;
+			return (Class<R>) inputType();
 		}
 
 		@Override
 		@SuppressWarnings("unchecked")
 		public RA apply(C parserContext, Token token, R arg) {
+			Object x = cvt == null ? arg : cvt.apply(parserContext, token, arg);
 			RA rr = (RA) Array.newInstance(result.getComponentType(), 1);
-			Array.set(rr, 0, arg);
+			Array.set(rr, 0, x);
 			return rr;
 		}
 	}
@@ -491,10 +521,12 @@ public class MultiSourceSemanticHandler<C> implements SemanticActionHandler<C> {
 	@SuppressWarnings("rawtypes")
 	private static class UnaryConvertedHandler<C, R, A> implements UnaryActionHandler<C, R, A> {
 		
+		private final String opId;
 		private final UnaryActionHandler op;
 		private final UnaryActionHandler cvt;
 		
-		public UnaryConvertedHandler(UnaryActionHandler<C, ?, ?> op, UnaryActionHandler<C, ?, ?> cvt) {
+		public UnaryConvertedHandler(String opId, UnaryActionHandler<C, ?, ?> op, UnaryActionHandler<C, ?, ?> cvt) {
+			this.opId = opId;
 			this.op = op;
 			this.cvt = cvt;
 		}
@@ -518,16 +550,23 @@ public class MultiSourceSemanticHandler<C> implements SemanticActionHandler<C> {
 			
 			return (R) op.apply(parserContext, token, x);
 		}
+		
+		@Override
+		public String toString() {
+			return opId + " (" + argType().getSimpleName() + ") -> " + returnType().getSimpleName();
+		}
 	}
 	
 	@SuppressWarnings("rawtypes")
 	private static class BinaryConvertedHandler<C, R, A, B> implements BinaryActionHandler<C, R, A, B> {
 		
+		private final String opId;
 		private final BinaryActionHandler op;
 		private final UnaryActionHandler cvtA;
 		private final UnaryActionHandler cvtB;
 		
-		public BinaryConvertedHandler(BinaryActionHandler<C, ?, ?, ?> op, UnaryActionHandler<C, ?, ?> cvtA, UnaryActionHandler<C, ?, ?> cvtB) {
+		public BinaryConvertedHandler(String opId, BinaryActionHandler<C, ?, ?, ?> op, UnaryActionHandler<C, ?, ?> cvtA, UnaryActionHandler<C, ?, ?> cvtB) {
+			this.opId = opId;
 			this.op = op;
 			this.cvtA = cvtA;
 			this.cvtB = cvtB;
@@ -559,6 +598,19 @@ public class MultiSourceSemanticHandler<C> implements SemanticActionHandler<C> {
 			
 			return (R) op.apply(parserContext, token, xa, xb);
 		}
+		
+		@Override
+		public String toString() {
+			return opId + " (" + leftType().getSimpleName() + ", " + rightType().getSimpleName() + ") -> " + returnType().getSimpleName();
+		}
+	}
+
+	private static boolean isAssignable(Class<?> a, Class<?> b) {
+		return a.isAssignableFrom(b);
+	}
+
+	private static boolean isAssignableElement(Class<?> a, Class<?> b) {
+		return a.isArray() && a.getComponentType().isAssignableFrom(b);
 	}
 	
 	private static Class<?> box(Class<?> c) {
