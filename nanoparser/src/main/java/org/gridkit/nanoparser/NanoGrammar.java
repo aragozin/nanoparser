@@ -102,6 +102,10 @@ public class NanoGrammar {
         public OpEnclosureBuilder<T> enclosure(String opID, TokenMatcher[] openPattern, TokenMatcher[] closePattern);
 
         public OpEnclosureBuilder<T> enclosure(String openPattern, String closePattern);
+
+        public OpEnclosureBuilder<T> enclosure(TokenMatcher[] openPattern, String closePattern);
+
+        public OpEnclosureBuilder<T> enclosure(TokenMatcher[] openPattern, TokenMatcher[] closePattern);
         
         /**
          * This operator would be applied implicitly if stream
@@ -481,17 +485,17 @@ public class NanoGrammar {
 
         @Override
         public OpEnclosureBuilder enclosure(String openPattern, String closePattern) {
-            validatePattern(openPattern);
-            validatePattern(closePattern);
-            push();
-            this.id = "";
-            this.type = OpType.UNARY;
-            this.pattern = new TokenMatcher[]{simpleMatcher(openPattern)};
-            this.pattern2 = new TokenMatcher[]{simpleMatcher(closePattern)};
-            this.holderType = EnclosingHolder.class;
-            this.pscope = new LazyScope(this);
-            this.nscope = pscope;
-            return this;
+        	return enclosure("", new TokenMatcher[]{simpleMatcher(openPattern)}, new TokenMatcher[]{simpleMatcher(closePattern)});
+        }
+
+        @Override
+        public OpEnclosureBuilder enclosure(TokenMatcher[] openPattern, String closePattern) {
+        	return enclosure("", openPattern, new TokenMatcher[]{simpleMatcher(closePattern)});
+        }
+
+        @Override
+        public OpEnclosureBuilder enclosure(TokenMatcher[] openPattern, TokenMatcher[] closePattern) {
+        	return enclosure("", openPattern, closePattern);
         }
         
         @Override
