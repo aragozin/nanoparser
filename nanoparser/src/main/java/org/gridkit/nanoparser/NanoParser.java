@@ -594,8 +594,8 @@ public class NanoParser<C> {
             if (stack.isEmpty()) {
                 error(mark, "Empty expression");
             }
-            if (last().rank > 0) {
-                error(last().token, "Missing right hand side '" + last().token.tokenBody() + "'");
+            if (last().rank > 0 && !last().op.isPostfix()) {
+            	error(last().token, "Missing right hand side '" + last().token.tokenBody() + "'");
             }
             
             while(stack.size() > 1) {
