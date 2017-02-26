@@ -35,6 +35,7 @@
 
   <modules>
     <module>nanoparser</module>
+    <module>nanoparser-regex </module>
     <module>nanoparser-examples</module>
   </modules>
 
