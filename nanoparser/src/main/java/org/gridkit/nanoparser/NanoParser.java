@@ -639,6 +639,9 @@ public class NanoParser<C> {
                     int lor = lastOpRank();
                     if (lor < 0 || lor < op.rank) {
                         stack.add(op);
+                        if (op.op.isPostfix()) {
+                        	mergeLastOp();
+                        }
                         break;
                     }
                     else {
