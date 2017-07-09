@@ -2,6 +2,8 @@ package org.gridkit.nanoparser;
 
 import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -261,7 +263,7 @@ public class MultiSourceSemanticHandler<C> implements SemanticActionHandler<C> {
 		
 		for(SematicActionSource<C> ss: actionSources) {
 			for(TermAction<C> ta: ss.enumTerms()) {
-				if (ta.opId().equals(opId)) {
+				if (opId == null || ta.opId().equals(opId)) {
 					if (rType == null || rType.isAssignableFrom(ta.returnType())) {
 						result.add(ta.handler());
 					}
@@ -275,8 +277,19 @@ public class MultiSourceSemanticHandler<C> implements SemanticActionHandler<C> {
 	protected UnaryActionHandler<?, ?, ?>[] initUnaryEnum(String opId, Class<?> rType, Class<?> argType) {
 		List<UnaryActionHandler<?, ?, ?>> result = new ArrayList<UnaryActionHandler<?, ?, ?>>();
 		
-		if (unaryUniverse.containsKey(opId)) {
-			for(UnaryActionHandler<?, ?, ?> h: unaryUniverse.get(opId)) {
+		Collection<List<UnaryActionHandler<?, ?, ?>>> searchSet;
+		if (opId == null) {
+			searchSet = unaryUniverse.values();
+		}
+		else if (unaryUniverse.containsKey(opId)) {
+			searchSet = Collections.singleton(unaryUniverse.get(opId));
+		}
+		else {
+			searchSet = Collections.emptySet();
+		}
+		
+		for(List<UnaryActionHandler<?, ?, ?>> set: searchSet) {
+			for(UnaryActionHandler<?, ?, ?> h: set) {
 				if (rType == null || rType.isAssignableFrom(h.returnType())) {
 					if (argType == null || h.argType().isAssignableFrom(argType)) {
 						result.add(h);
@@ -291,8 +304,20 @@ public class MultiSourceSemanticHandler<C> implements SemanticActionHandler<C> {
 	protected BinaryActionHandler<?, ?, ?, ?>[] initBinaryEnum(String opId,	Class<?> rType, Class<?> leftType, Class<?> rightType) {
 		List<BinaryActionHandler<?, ?, ?, ?>> result = new ArrayList<BinaryActionHandler<?, ?, ?, ?>>();
 
-		if (binaryUniverse.containsKey(opId)) {
-			for(BinaryActionHandler<?, ?, ?, ?> h: binaryUniverse.get(opId)) {
+		Collection<List<BinaryActionHandler<?, ?, ?, ?>>> searchSet;
+		if (opId == null) {
+			searchSet = binaryUniverse.values();
+		}
+		else if (binaryUniverse.containsKey(opId)) {
+			searchSet = Collections.singleton(binaryUniverse.get(opId));
+		}
+		else {
+			searchSet = Collections.emptySet();
+		}
+
+		
+		for(List<BinaryActionHandler<?, ?, ?, ?>> set: searchSet) {
+			for(BinaryActionHandler<?, ?, ?, ?> h: set) {
 				if (rType == null || rType.isAssignableFrom(h.returnType())) {
 					if (leftType == null || h.leftType().isAssignableFrom(leftType)) {
 						if (rightType == null || h.returnType().isAssignableFrom(rightType)) {

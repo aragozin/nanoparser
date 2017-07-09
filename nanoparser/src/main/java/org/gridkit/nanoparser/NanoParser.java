@@ -25,16 +25,19 @@ import org.gridkit.nanoparser.NanoGrammar.SyntaticScope;
 import org.gridkit.nanoparser.SemanticActionHandler.BinaryActionHandler;
 import org.gridkit.nanoparser.SemanticActionHandler.TermActionHandler;
 import org.gridkit.nanoparser.SemanticActionHandler.UnaryActionHandler;
+import org.gridkit.nanoparser.SemanticActionSolver.TypeSet;
 
 public class NanoParser<C> {
 
     private final static OperatorInfo EVAL_OP = new OperatorInfo(NanoGrammar.ACTION_EVAL, OpType.UNARY, 0, true);
     
     private final SemanticActionHandler<C> actionDispatcher;
+    private final SemanticActionSolver typeSolver;
     private final ParseTable parseTable;
     
     public NanoParser(SemanticActionHandler<C> actionDispatcher, SyntaticScope scope) {
         this.actionDispatcher = actionDispatcher;
+        this.typeSolver = new SemanticActionSolver(actionDispatcher);
         this.parseTable = new ParseTable(scope);
     }
     
@@ -212,6 +215,7 @@ public class NanoParser<C> {
     }
 
     private <T> Object convertTree(C parserContext, Class<T> type, ParseNode node) {
+    	markTypes(typeSolver.setOf(type), node);
         Error error = mapActions(type, node, -1);
         if (error == null) {
             return applyActions(parserContext, type, node);
@@ -397,6 +401,93 @@ public class NanoParser<C> {
         return hh.length > 0 ? hh[0].returnType() : null;
     }
 
+    
+    private void markTypes(TypeSet masterSet, ParseNode node) {
+    	node.typeMarkUp = typeSolver.setOf();
+
+    	if (isTerm(node)) {
+            markTermTypes(masterSet, node);
+        }
+        else if (isUnary(node)) {
+            markUnaryTypes(masterSet, node);
+        }
+        else {
+            mapBinaryTypes(masterSet, node);
+        }
+    	
+    	if (node.typeMarkUp.isEmpty()) {
+    		errorHook();
+    	}
+    }
+
+    protected void errorHook() {
+    	// just for setting break points
+    }
+    
+    protected void markTermTypes(TypeSet masterSet, ParseNode node) {
+        if (NanoGrammar.ACTION_NOOP.equals(node.op.id())) {
+            if (masterSet.contains(String.class)) {
+            	node.typeMarkUp.add(String.class);
+            }
+        }
+        else {
+            TermActionHandler<?, ?>[] hh = actionDispatcher.enumTerm(node.op.id(), null);
+            for(TermActionHandler<?, ?> h: hh) {
+            	if (masterSet.contains(h.returnType())) {
+            		node.typeMarkUp.add(h.returnType());
+            	}
+            }
+        }
+    }
+
+    protected void markUnaryTypes(TypeSet masterSet, ParseNode node) {
+        if (NanoGrammar.ACTION_NOOP.equals(node.op.id())) {
+        	markTypes(masterSet, node.leftNode);
+        	node.typeMarkUp.addAll(node.leftNode.typeMarkUp);
+        }
+        else {
+            UnaryActionHandler<?, ?, ?>[] hh = actionDispatcher.enumUnaries(node.op.id(), null, null);
+            TypeSet sub = typeSolver.setOf();
+            for(UnaryActionHandler<?, ?, ?> h: hh) {
+            	if (masterSet.contains(h.returnType())) {
+            		sub.add(h.argType());
+            	}
+            }
+            markTypes(sub, node.leftNode);
+            for(UnaryActionHandler<?, ?, ?> h: hh) {
+            	if (masterSet.contains(h.returnType())) {
+            		if (node.leftNode.typeMarkUp.contains(h.argType())) {
+            			node.typeMarkUp.add(h.returnType());
+            		}
+            	}
+            }
+        }
+    }
+
+    protected void mapBinaryTypes(TypeSet masterSet, ParseNode node) {
+
+        BinaryActionHandler<?, ?, ?, ?>[] hh = actionDispatcher.enumBinaries(node.op.id(), null, null, null);
+
+    	TypeSet lts = typeSolver.setOf();
+    	TypeSet rts = typeSolver.setOf();
+    	
+        for(BinaryActionHandler<?, ?, ?, ?> h: hh) {
+        	if (masterSet.contains(h.returnType())) {
+        		lts.add(h.leftType());
+        		rts.add(h.rightType());
+        	}
+        }
+        markTypes(lts, node.leftNode);
+        markTypes(rts, node.rightNode);
+        for(BinaryActionHandler<?, ?, ?, ?> h: hh) {
+        	if (masterSet.contains(h.returnType())) {
+        		if (node.leftNode.typeMarkUp.contains(h.leftType()) && node.rightNode.typeMarkUp.contains(h.rightType())) {
+        			node.typeMarkUp.add(h.returnType());
+        		}
+        	}
+        }
+    }
+    
     @SuppressWarnings("unchecked")
     private Object applyTermAction(C parserContext, Class<?> type, ParseNode node) {
         if (node.inferedHandler == null) {
@@ -790,6 +881,8 @@ public class NanoParser<C> {
         OperatorInfo op;
         ParseNode leftNode;
         ParseNode rightNode;
+        
+        TypeSet typeMarkUp;
 
         public boolean isTerm() {
             return rank < 0;

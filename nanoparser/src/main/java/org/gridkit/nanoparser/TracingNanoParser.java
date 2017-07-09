@@ -17,6 +17,10 @@ public class TracingNanoParser<C> extends NanoParser<C> {
 		super(scope, actionSource1, actionSource2);
 	}
 
+	public TracingNanoParser(SyntaticScope scope, SematicActionSource<C> actionSource1, SematicActionSource<C> actionSource2, SematicActionSource<C> actionSource3) {
+		super(scope, actionSource1, actionSource2, actionSource3);
+	}
+
 	public TracingNanoParser(SyntaticScope scope, SematicActionSource<C>... actionSources) {
 		super(scope, actionSources);
 	}
@@ -48,7 +52,7 @@ public class TracingNanoParser<C> extends NanoParser<C> {
 
 	@Override
     protected Error mapTermAction(Class<?> type, ParseNode node, int bestParsed) {
-        trace("mapTermAction: " + type.getSimpleName() + " | " + node.toString());
+        trace("mapTermAction: " + type.getSimpleName() + " | " + flat(node.toString()));
         ++deepth;
         Error error = super.mapTermAction(type, node, bestParsed);
         --deepth;
@@ -58,7 +62,7 @@ public class TracingNanoParser<C> extends NanoParser<C> {
 
     @Override
     protected Error mapUnaryAction(Class<?> type, ParseNode node, int bestParsed) {
-        trace("mapUnaryAction: " + type.getSimpleName() + " | " + node.toString());
+        trace("mapUnaryAction: " + type.getSimpleName() + " | " + flat(node.toString()));
         ++deepth;
         Error error = super.mapUnaryAction(type, node, bestParsed);
         --deepth;
@@ -68,7 +72,7 @@ public class TracingNanoParser<C> extends NanoParser<C> {
 
     @Override
     protected Error mapBinaryAction(Class<?> type, ParseNode node, int bestParsed) {
-        trace("mapBinaryAction: " + type.getSimpleName() + " | " + node.toString());
+        trace("mapBinaryAction: " + type.getSimpleName() + " | " + flat(node.toString()));
         ++deepth;
         Error error = super.mapBinaryAction(type, node, bestParsed);
         --deepth;
@@ -76,7 +80,11 @@ public class TracingNanoParser<C> extends NanoParser<C> {
         return error;
     }
     
-    protected void trace(String text) {
+    private String flat(String text) {
+		return text.replace('\n', ' ');
+	}
+
+	protected void trace(String text) {
         if (trace != null) {
             indent();
             trace.println(text);
