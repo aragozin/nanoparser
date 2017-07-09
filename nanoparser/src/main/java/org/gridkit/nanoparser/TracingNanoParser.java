@@ -29,7 +29,24 @@ public class TracingNanoParser<C> extends NanoParser<C> {
 		this.trace = trace;
 	}
 	
-    @Override
+	@Override
+	 protected <T> T evalNode(C parserContext, Class<T> type, SourceReader source,	org.gridkit.nanoparser.NanoParser.ParseNode node) {
+		trace("evalNode to " + type.getName());
+		dump("  ", node);
+		return super.evalNode(parserContext, type, source, node);
+	}
+	
+    private void dump(String indent, org.gridkit.nanoparser.NanoParser.ParseNode node) {
+		trace(indent + "-> " + node.op.id() + " [" + node.op.rank() + "] '" + node.token.tokenBody() + "'");
+		if (node.leftNode != null) {
+			dump(indent + "  ", node.leftNode);
+		}
+		if (node.rightNode != null) {
+			dump(indent + "  ", node.rightNode);
+		}
+	}
+
+	@Override
     protected Error mapTermAction(Class<?> type, ParseNode node, int bestParsed) {
         trace("mapTermAction: " + type.getSimpleName() + " | " + node.toString());
         ++deepth;

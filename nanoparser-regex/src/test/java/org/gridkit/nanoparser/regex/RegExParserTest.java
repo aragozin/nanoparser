@@ -29,6 +29,7 @@ public class RegExParserTest {
         parse("(?:.*)");
         parse(".*(ab|[a-z]d).*");        
         parse("a[b][^c]");
+        parse(".*(IO.thread-out).*");
     }
     
     public PatternElement parse(String regEx) {

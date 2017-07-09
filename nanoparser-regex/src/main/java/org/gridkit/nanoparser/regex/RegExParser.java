@@ -25,7 +25,7 @@ public class RegExParser extends ReflectionActionSource<Void> {
             
 
     public static final SyntaticScope PATTERN = NanoGrammar.newParseTable()
-            .glueOp("CONCAT").rank(3)
+            .glueOp("SEQ").rank(3)
             .term("PCLASS", "~(\\\\d|\\\\D|\\\\s|\\\\S|\\\\w|\\\\W)")
             .term("PCLASS", "~\\\\(p|P)\\{\\w+\\}")
             .term("ESCAPE", "~\\\\(0\\d\\d?\\d?|x\\p{XDigit}+|u\\p{XDigit}\\p{XDigit}\\p{XDigit}\\p{XDigit}|t|n|r|f|a|e)")
@@ -136,8 +136,8 @@ public class RegExParser extends ReflectionActionSource<Void> {
     	}
     }
     
-    @Binary("CONCAT")
-    public PatternElement concat(@Convertible PatternElement a, @Convertible PatternElement b) {
+    @Binary("SEQ")
+    public PatternElement seq(@Convertible PatternElement a, @Convertible PatternElement b) {
         return new PatternSeq(a, b);
     }
     

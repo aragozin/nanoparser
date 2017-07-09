@@ -48,6 +48,11 @@ public class NanoParser<C> {
     	this(new MultiSourceSemanticHandler<C>(new SematicActionSource[]{actionSource1, actionSource2}), scope);
     }
 
+    @SuppressWarnings("unchecked")
+    public NanoParser(SyntaticScope scope, SematicActionSource<C> actionSource1, SematicActionSource<C> actionSource2, SematicActionSource<C> actionSource3) {
+    	this(new MultiSourceSemanticHandler<C>(new SematicActionSource[]{actionSource1, actionSource2, actionSource3}), scope);
+    }
+
     public NanoParser(SyntaticScope scope, SematicActionSource<C>... actionSources) {
     	this(new MultiSourceSemanticHandler<C>(actionSources), scope);
     }
