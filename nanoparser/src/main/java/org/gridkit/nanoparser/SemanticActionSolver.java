@@ -36,7 +36,16 @@ class SemanticActionSolver {
 	public TypeSet setOf(Class<?>... types) {
 		TypeSet ts = new TypeSet(typeUniverse);
 		for(Class<?> t: types) {
-			ts.add(t);
+			boolean known = false;
+			for(Class<?> nc: typeUniverse.universe) {
+				if (t.isAssignableFrom(nc)) {
+					ts.add(nc);
+					known = true;
+				}
+			}
+			if (!known) {
+				throw new IllegalArgumentException("Unknown class: " + t.getName());
+			}
 		}
 		return ts; 
 	}
