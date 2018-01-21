@@ -438,6 +438,9 @@ public class NanoParser<C> {
             	}
             }
         }
+        if (node.typeMarkUp.isEmpty()) {
+        	// error condition
+        }
     }
 
     protected void markUnaryTypes(TypeSet masterSet, ParseNode node) {
@@ -461,6 +464,9 @@ public class NanoParser<C> {
             		}
             	}
             }
+        }
+        if (node.typeMarkUp.isEmpty()) {
+        	// error condition
         }
     }
 
