@@ -1,6 +1,7 @@
 package org.gridkit.nanoparser.regex;
 
 import org.gridkit.nanoparser.ParserException;
+import org.gridkit.nanoparser.SemanticValidator;
 import org.gridkit.nanoparser.TracingNanoParser;
 import org.gridkit.nanoparser.regex.RegExParser.PatternElement;
 import org.junit.Assert;
@@ -30,6 +31,11 @@ public class RegExParserTest {
         parse(".*(ab|[a-z]d).*");        
         parse("a[b][^c]");
         parse(".*(IO.thread-out).*");
+    }
+    
+    @Test
+    public void validate_parser() {
+    	Assert.assertEquals("", SemanticValidator.validate(RegExParser.PATTERN, new RegExParser()));
     }
     
     public PatternElement parse(String regEx) {

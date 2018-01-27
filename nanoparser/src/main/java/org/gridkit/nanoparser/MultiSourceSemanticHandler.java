@@ -512,6 +512,11 @@ public class MultiSourceSemanticHandler<C> implements SemanticActionHandler<C> {
 		}
 
 		@Override
+		public Object implemetationReference() {
+			return null;
+		}
+
+		@Override
 		public Class<?> inputType() {
 			return cvt == null ? arg : cvt.argType();
 		}
@@ -557,6 +562,11 @@ public class MultiSourceSemanticHandler<C> implements SemanticActionHandler<C> {
 		}
 
 		@Override
+		public Object implemetationReference() {
+			return op.implemetationReference();
+		}
+
+		@Override
 		@SuppressWarnings("unchecked")
 		public Class<R> returnType() {
 			return (Class<R>) op.returnType();
@@ -596,6 +606,13 @@ public class MultiSourceSemanticHandler<C> implements SemanticActionHandler<C> {
 			this.cvtA = cvtA;
 			this.cvtB = cvtB;
 		}
+
+		@Override
+		public Object implemetationReference() {
+			return op.implemetationReference();
+		}
+
+
 
 		@Override
 		@SuppressWarnings("unchecked")

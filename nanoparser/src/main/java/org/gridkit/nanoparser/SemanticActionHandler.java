@@ -25,6 +25,11 @@ public interface SemanticActionHandler<C> {
 
     public interface ActionHandler {
         
+    	/**
+    	 * Used for consistency validation 
+    	 */
+    	public Object implemetationReference();
+    	
     }
     
     public interface TermActionHandler<C, R> extends ActionHandler {

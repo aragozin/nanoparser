@@ -280,6 +280,11 @@ public abstract class ReflectionActionHandler<C> implements SemanticActionHandle
         }
 
         @Override
+		public Object implemetationReference() {
+			return method;
+		}
+
+		@Override
         public Class<Object> argType() {
             return leftType();
         }

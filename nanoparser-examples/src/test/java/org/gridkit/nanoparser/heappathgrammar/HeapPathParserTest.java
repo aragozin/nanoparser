@@ -38,6 +38,7 @@ public class HeapPathParserTest {
         addCase(result, "inputsByName.table?entrySet[key=abc].value(**.String)", "[.inputsByName, .table, ?entrySet, [.key=abc], .value, (**.String)]");
         addCase(result, "inputsByName.table[*][key=null].value(**.String)", "[.inputsByName, .table, [*], [.key=null], .value, (**.String)]");
         addCase(result, "[key=\"A B C\"]", "[[.key=A B C]]");
+        addCase(result, "[key=\"\\\"A B C\\\"\"]", "[[.key=\"A B C\"]]");
         addCase(result, "[key=\"A B C\" && value=X]", "[[(.key=A B C&&.value=X)]]");
         addCase(result, "[key=\"A B C\" && value]", "[[(.key=A B C&&.value)]]");
         addCase(result, "[key=\"A B C\" || value]", "[[(.key=A B C||.value)]]");

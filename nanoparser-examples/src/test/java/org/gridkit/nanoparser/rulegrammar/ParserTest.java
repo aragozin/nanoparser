@@ -7,10 +7,13 @@ import java.util.List;
 
 import org.gridkit.nanoparser.NanoParser;
 import org.gridkit.nanoparser.ParserException;
+import org.gridkit.nanoparser.SemanticValidator;
 import org.gridkit.nanoparser.SourceReader;
 import org.gridkit.nanoparser.rulegrammar.AST.Lit;
 import org.gridkit.nanoparser.rulegrammar.AST.Statement;
 import org.gridkit.nanoparser.rulegrammar.AST.Var;
+import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -498,6 +501,11 @@ is_list(A) := instance_of(A, "java.util.List").
         test_ast();
     }
 
+    @Test @Ignore
+    public void validate_parser() {
+    	Assert.assertEquals("", SemanticValidator.validate(RuleParser.MAIN_GRAMMAR, new RuleParser()));
+    }
+    
     protected void test_ast() {
         try {
             helper.verifyAST(parseStatements(helper.getParseString()));

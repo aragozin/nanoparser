@@ -90,8 +90,6 @@ class SemanticActionSolver {
 		return set;
 	}
 
-
-
 	static class TypeSet {
 		
 		final Map<Class<?>, Integer> cindex;
