@@ -35,7 +35,7 @@ public class RegExParser extends ReflectionActionSource<Void> {
             .term("ESCAPE", "~\\\\.")
             .enclosure("INVERTED", "[^", "]").scope(CHARSET)
             .enclosure("UNION", "[", "]").scope(CHARSET)
-            .term("BCONTROl", "~(\\^|\\$|\\\\b|\\\\B|\\\\A|\\\\G|\\\\Z|\\\\z)")
+            .term("BCONTROL", "~(\\^|\\$|\\\\b|\\\\B|\\\\A|\\\\G|\\\\Z|\\\\z)")
             .enclosure("GROUP", "~\\(\\?\\<\\w+\\>", ")")
             .enclosure("GROUP", "(?:", ")")
             .enclosure("GROUP", "(?=", ")")
@@ -89,11 +89,15 @@ public class RegExParser extends ReflectionActionSource<Void> {
 
     @Binary("UNION")
     public CharSet union(CharSet a, CharSet b) {
-        return new CharSetUnion(a, b);
+    	if (a instanceof CharSetUnion) {
+    		return union((CharSetUnion)a, b);
+    	}
+    	else {
+    		return new CharSetUnion(a, b);
+    	}
     }
 
-    @Binary("UNION")
-    public CharSet union(CharSetUnion a, CharSet b) {
+    private CharSet union(CharSetUnion a, CharSet b) {
         CharSet[] r = Arrays.copyOf(a.elements, a.elements.length + 1);
         r[r.length - 1] = b;
         return new CharSetUnion(r);

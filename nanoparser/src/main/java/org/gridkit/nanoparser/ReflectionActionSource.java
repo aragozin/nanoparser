@@ -333,6 +333,11 @@ public abstract class ReflectionActionSource<C> implements SematicActionSource<C
         }
 
         @Override
+		public Object implemetationReference() {
+			return method;
+		}
+
+		@Override
         public Class<Object> argType() {
             return leftType();
         }

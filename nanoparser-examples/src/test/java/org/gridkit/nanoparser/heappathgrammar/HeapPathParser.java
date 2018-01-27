@@ -125,6 +125,11 @@ public class HeapPathParser extends ReflectionActionSource<Void> {
         return parser.parse(null, HeapPathStep[].class, expression);        
     }
     
+    @Binary("CONCAT")
+    public String concat(String a, String b) {
+    	return a + b;
+    }
+    
     @Term("NAME")
     public HeapPathStep fieldStep(String name) {
         return new FieldStep(name);

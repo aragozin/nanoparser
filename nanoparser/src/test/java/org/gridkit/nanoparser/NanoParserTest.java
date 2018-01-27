@@ -21,6 +21,8 @@ import org.assertj.core.api.Assertions;
 import org.gridkit.nanoparser.NanoGrammar.SyntaticScope;
 import org.junit.Test;
 
+import org.junit.Assert;
+
 public class NanoParserTest {
 
     @Test
@@ -33,6 +35,7 @@ public class NanoParserTest {
                 .infixOp("*", "*").rank(2).toScope();
         
         NanoParser<Void> parser = new NanoParser<Void>(scope, new SimpleParser());
+        Assert.assertEquals("", SemanticValidator.validate(scope, new SimpleParser()));
         
         assertParseResult(parser, "A+B", "[A+B]");
         assertParseResult(parser, "A+B+C", "[[A+B]+C]");
@@ -53,6 +56,7 @@ public class NanoParserTest {
                 .toScope();
         
         NanoParser<Void> parser = new NanoParser<Void>(scope, new SimpleParser());
+        Assert.assertEquals("", SemanticValidator.validate(scope, new SimpleParser()));
         
 //        assertParseResult(parser, "A+B", "[A+B]");
 //        assertParseResult(parser, "A+B+C", "[[A+B]+C]");
@@ -81,7 +85,8 @@ public class NanoParserTest {
                 .toScope();
         
         NanoParser<Void> parser = new NanoParser<Void>(scope, new SimpleParser());
-        
+        Assert.assertEquals("", SemanticValidator.validate(scope, new SimpleParser()));
+
         assertParseResult(parser, "A+'BCD'", "[A+BCD]");
         assertParseResult(parser, "A + ' B C D '", "[A+ B C D ]");
         assertParseResult(parser, "A + 'B\\'CD'", "[A+B'CD]");
@@ -116,6 +121,7 @@ public class NanoParserTest {
                 .enclosure("CALL", "~[A-Za-z]+\\(", ")").scope(functionArgs);
         
         NanoParser<Void> parser = new NanoParser<Void>(scope, new SimpleParser());
+        Assert.assertEquals("", SemanticValidator.validate(scope, new SimpleParser()));
         
 //        assertParseResult(parser, "A+x(C,D,E)", "[A+x[C, D, E]]");
         assertParseResult(parser, "x(A)+B", "[x[A]+B]");
