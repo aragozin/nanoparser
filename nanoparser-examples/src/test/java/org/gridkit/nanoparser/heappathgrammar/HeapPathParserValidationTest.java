@@ -8,7 +8,7 @@ public class HeapPathParserValidationTest {
 
     @Test
     public void validate_parser() {
-    	Assert.assertEquals("", SemanticValidator.validate(HeapPathParser.HEAPPATH_GRAMMAR, new HeapPathParser()));
+        Assert.assertEquals("", SemanticValidator.validate(HeapPathParser.HEAPPATH_GRAMMAR, new HeapPathParser()));
     }
 
 }

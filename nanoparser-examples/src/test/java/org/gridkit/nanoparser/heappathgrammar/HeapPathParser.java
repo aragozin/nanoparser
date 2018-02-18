@@ -15,20 +15,20 @@ public class HeapPathParser extends ReflectionActionSource<Void> {
             .term("ESCAPE", "~\\\\.")
             .glueOp("CONCAT")
             .toScope();
-            
+
     public static final SyntaticScope TYPE_MATCH = NanoGrammar.newParseTable()
             // leading tilde (~) in token use for RegEx
             .skip("~\\s") // ignore white spaces
             .term("~[a-zA-Z_][a-zA-Z0-9_]*") // Java name (only ASCII charset
-            .term("**") // any name match 
+            .term("**") // any name match
             .term("*") // non-dot match
             .prefixOp("+").rank(4) // subclass matcher
-            .infixOp(".").rank(3) 
+            .infixOp(".").rank(3)
             .infixOp("|").rank(2) // conjunction
             .toScope();
 
-    public static final SyntaticScope BRACKET_GRAMMAR = NanoGrammar.newParseTable().toLazyScope();            
-    
+    public static final SyntaticScope BRACKET_GRAMMAR = NanoGrammar.newParseTable().toLazyScope();
+
     public static final SyntaticScope HEAPPATH_GRAMMAR = NanoGrammar.newParseTable()
             // leading tilde (~) in token use for RegEx
             .skip("~\\s") // ignore white spaces
@@ -40,12 +40,12 @@ public class HeapPathParser extends ReflectionActionSource<Void> {
                 .implicitPrefixOp(".", true) // implicit dot
                 .implicitOpRank(4) // should match normal dot operator
                 .scope(TYPE_MATCH)
-            
+
             .enclosure("[]", "[", "]")
             .implicitPrefixOp(".", true) // implicit dot
                 .implicitOpRank(4) // should match normal dot operator
                 .scope(BRACKET_GRAMMAR)
-                            
+
             .infixOp(".").rank(4) // dot operator
             .postfixOp("?entrySet").rank(4) // map iteration
 
@@ -53,10 +53,10 @@ public class HeapPathParser extends ReflectionActionSource<Void> {
 
     public static final SyntaticScope HEAPPATH_MULTI = NanoGrammar.newParseTable()
             .include(HEAPPATH_GRAMMAR)
-            .separator(";")            
+            .separator(";")
             .toScope();
-    
-    static { 
+
+    static {
         NanoGrammar.extendTable(BRACKET_GRAMMAR)
             .include(HEAPPATH_GRAMMAR)
             .enclosure("STRING", "\"", "\"").scope(QUOTED_STRING)
@@ -69,7 +69,7 @@ public class HeapPathParser extends ReflectionActionSource<Void> {
     }
 
     private NanoParser<Void> parser = new NanoParser<Void>(HEAPPATH_MULTI, this) {
-        
+
         // tracing
         int deepth;
 
@@ -102,7 +102,7 @@ public class HeapPathParser extends ReflectionActionSource<Void> {
             trace(error == null ? "-> OK" : "-> ERROR: " + error);
             return error;
         }
-        
+
         protected void trace(String text) {
             if (trace) {
                 indent();
@@ -116,20 +116,20 @@ public class HeapPathParser extends ReflectionActionSource<Void> {
                     System.out.print("  ");
                 }
             }
-        }        
+        }
     };
-    
+
     private boolean trace = true;
-    
-    public HeapPathStep[] parsePath(String expression) {        
-        return parser.parse(null, HeapPathStep[].class, expression);        
+
+    public HeapPathStep[] parsePath(String expression) {
+        return parser.parse(null, HeapPathStep[].class, expression);
     }
-    
+
     @Binary("CONCAT")
     public String concat(String a, String b) {
-    	return a + b;
+        return a + b;
     }
-    
+
     @Term("NAME")
     public HeapPathStep fieldStep(String name) {
         return new FieldStep(name);
@@ -149,7 +149,7 @@ public class HeapPathParser extends ReflectionActionSource<Void> {
     public HeapPathStep[] rootConversion(@Convertible HeapPathStep[] step) {
         return step;
     }
-    
+
     @Binary(".")
     public HeapPathStep[] dotStep(@Convertible HeapPathStep[] a, HeapPathStep b) {
         HeapPathStep[] r = Arrays.copyOf(a, a.length + 1);
@@ -163,7 +163,7 @@ public class HeapPathParser extends ReflectionActionSource<Void> {
         r[r.length - 1] = new MapEntryStep();
         return r;
     }
-    
+
     @Term("*")
     public BracketIndex anyIndex(String name) {
         return new BracketIndex(-1);
@@ -173,7 +173,7 @@ public class HeapPathParser extends ReflectionActionSource<Void> {
     public BracketIndex numericIndex(String name) {
         return new BracketIndex(Integer.valueOf(name));
     }
-    
+
     @Unary("[]")
     public HeapPathStep indexOp(BracketIndex index) {
         return new IndexStep(index.index);
@@ -183,7 +183,7 @@ public class HeapPathParser extends ReflectionActionSource<Void> {
     public HeapPathStep predicateOp(Predicate predicate) {
         return new PredicateStep(predicate);
     }
-    
+
     @Binary("=")
     public Predicate eqPredicate(@Convertible HeapPathStep[] path, String value) {
         return new EqPredicate(path, value);
@@ -203,7 +203,7 @@ public class HeapPathParser extends ReflectionActionSource<Void> {
     public Predicate orPredicate(@Convertible Predicate a, @Convertible Predicate b) {
         return new OrPredicate(a, b);
     }
-    
+
     @Convertion
     public Predicate existsPredicate(HeapPathStep path) {
         return new ExistsPredicate(new HeapPathStep[]{path});
@@ -213,7 +213,7 @@ public class HeapPathParser extends ReflectionActionSource<Void> {
     public Predicate existsPredicate(HeapPathStep[] path) {
         return new ExistsPredicate(path);
     }
-    
+
     @Term("NUM")
     public Number num(String param) {
         if (param.indexOf('.') >= 0) {
@@ -239,7 +239,7 @@ public class HeapPathParser extends ReflectionActionSource<Void> {
             return escape.substring(1);
         }
     }
-    
+
     @Term("NAME")
     public String namePattern(String param) {
         return param;

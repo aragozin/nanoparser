@@ -13,7 +13,7 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class PrecendenceTest extends ReflectionActionSource<Void> {
 
-	
+
     public static final SyntaticScope TEST_GRAMMAR = NanoGrammar.newParseTable()
             .skip("~\\s") // ignore white spaces
             .term("~\\d+") // simple decimal token
@@ -28,7 +28,7 @@ public class PrecendenceTest extends ReflectionActionSource<Void> {
             .infixOrPrefixOp("OP", "i3").rank(3)
             .infixOrPrefixOp("OP", "i4").rank(4)
             .infixOrPrefixOp("OP", "i5").rank(5)
-            
+
             .prefixOp("OP", "p1").rank(1)
             .prefixOp("OP", "p2").rank(2)
             .prefixOp("OP", "p3").rank(3)
@@ -40,23 +40,23 @@ public class PrecendenceTest extends ReflectionActionSource<Void> {
             .postfixOp("OP", "P3").rank(3)
             .postfixOp("OP", "P4").rank(4)
             .postfixOp("OP", "P5").rank(5)
-            
+
             .enclosure("()", "(", ")")
             .toScope();
 
     @Unary("()")
     public String par(String arg) {
-    	return "(" + arg + ")";
+        return "(" + arg + ")";
     }
 
     @Unary("OP")
     public String par(@Source Token tkn, String arg) {
-    	return "(" + tkn + " " + arg + ")";
+        return "(" + tkn + " " + arg + ")";
     }
-    
+
     @Binary("OP")
     public String par(@Source Token tkn, String a, String b) {
-    	return "(" + a + " " + tkn + " " + b + ")";
+        return "(" + a + " " + tkn + " " + b + ")";
     }
 
     @Parameters(name = "{0} == {1}")
@@ -82,9 +82,9 @@ public class PrecendenceTest extends ReflectionActionSource<Void> {
 
         return cases;
     }
-    
+
     private static void addCase(List<Object[]> cases, Object... c) {
-        cases.add(c);        
+        cases.add(c);
     }
 
     String expression;
@@ -98,7 +98,7 @@ public class PrecendenceTest extends ReflectionActionSource<Void> {
     @Test
     public void verify() {
         NanoParser<Void> parser = new NanoParser<Void>(TEST_GRAMMAR, this);
-        
-        Assert.assertEquals(expectedResult, parser.parse(null, String.class, expression));        
+
+        Assert.assertEquals(expectedResult, parser.parse(null, String.class, expression));
     }
 }

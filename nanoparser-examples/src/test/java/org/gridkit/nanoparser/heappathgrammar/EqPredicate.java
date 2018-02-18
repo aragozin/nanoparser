@@ -4,12 +4,12 @@ class EqPredicate implements Predicate {
 
     private final HeapPathStep[] path;
     private final Object value;
-    
+
     public EqPredicate(HeapPathStep[] path, Object value) {
         this.path = path;
         this.value = value;
     }
-    
+
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();

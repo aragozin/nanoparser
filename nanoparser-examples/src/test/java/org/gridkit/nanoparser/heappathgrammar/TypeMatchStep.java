@@ -7,7 +7,7 @@ class TypeMatchStep implements HeapPathStep {
     public TypeMatchStep(TypeMatch typeMatch) {
         this.typeMatch = typeMatch;
     }
-    
+
     @Override
     public String toString() {
         return "(" + typeMatch + ")";

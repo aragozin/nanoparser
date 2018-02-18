@@ -96,7 +96,7 @@ class TestDataInline extends TestWatcher {
         finally {
             br.close();
         }
-         
+
     }
 
     public String[] textLines() {

@@ -26,9 +26,9 @@ public class ParserTestHelper extends TestDataInline {
             }
             sb.append(lines[n]).append('\n');
         }
-        return sb.toString();        
+        return sb.toString();
     }
-    
+
     public String getAstString() {
         String[] lines = textLines();
         int n = 0;
@@ -55,24 +55,24 @@ public class ParserTestHelper extends TestDataInline {
             }
             sb.append(lines[n]).append('\n');
         }
-        return sb.toString();        
+        return sb.toString();
     }
-    
+
     public void verifyAST(Object[] ast) {
         try {
             Assert.assertEquals(fixIndent(getAstString().trim(), 2), formatMultiline(ast).trim());
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-    }    
-    
-    public String format(Object obj) throws IllegalArgumentException, IllegalAccessException {        
+    }
+
+    public String format(Object obj) throws IllegalArgumentException, IllegalAccessException {
         StringBuilder sb = new StringBuilder();
         format(obj, sb, false);
         return sb.toString();
     }
 
-    public String formatMultiline(Object[] objects) throws IllegalArgumentException, IllegalAccessException {        
+    public String formatMultiline(Object[] objects) throws IllegalArgumentException, IllegalAccessException {
         StringBuilder sb = new StringBuilder();
         for(Object obj: objects) {
             if (sb.length() > 0) {
@@ -87,7 +87,7 @@ public class ParserTestHelper extends TestDataInline {
         StringBuilder sb = new StringBuilder();
         int level = 0;
         boolean start = true;
-        
+
         for(int i = 0; i != format.length(); ++i) {
             char ch  = format.charAt(i);
             if (ch == '\t') {
@@ -121,8 +121,8 @@ public class ParserTestHelper extends TestDataInline {
                 sb.append(ch);
             }
         }
-        
-        return sb.toString();        
+
+        return sb.toString();
     }
 
     private void indent(StringBuilder sb, int n) {
@@ -130,7 +130,7 @@ public class ParserTestHelper extends TestDataInline {
             sb.append(' ');
         }
     }
-    
+
     private void format(Object obj, StringBuilder sb, boolean multiLine) throws IllegalArgumentException, IllegalAccessException {
         if (obj instanceof Lit) {
             sb.append(((Lit) obj).body);
@@ -165,7 +165,7 @@ public class ParserTestHelper extends TestDataInline {
                         }
                         else {
                             sb.append(", ");
-                        }                            
+                        }
                     }
                     fisrt = false;
                     format(Array.get(obj, i), sb, multiLine);
@@ -194,7 +194,7 @@ public class ParserTestHelper extends TestDataInline {
                         }
                         else {
                             sb.append(", ");
-                        }                            
+                        }
                     }
                     fisrt = false;
                     sb.append(f.getName()).append(": ");
@@ -206,13 +206,13 @@ public class ParserTestHelper extends TestDataInline {
             }
             sb.append("}");
         }
-    }    
-    
+    }
+
     private static class FieldSorter implements Comparator<Field> {
 
         @Override
         public int compare(Field o1, Field o2) {
             return o1.getName().compareTo(o2.getName());
-        }        
+        }
     }
 }

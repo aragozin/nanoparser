@@ -124,4 +124,40 @@
       </plugins>
     </pluginManagement>
   </build>
+
+  <profiles>
+    <profile>
+      <id>ws-fix</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId> 
+            <artifactId>maven-antrun-plugin</artifactId> 
+            <version>1.7</version> 
+            <executions> 
+              <execution> 
+                <phase>clean</phase>
+                <goals><goal>run</goal></goals>
+                <configuration> 
+                  <target> 
+                    <fixcrlf 
+                        srcdir="." 
+                        includes="src/**/*.java pom.xml"
+                        encoding="UTF8"                     
+                        eol="lf" 
+                        tab="remove"
+                        tablength="4"
+                        eof="remove"
+                        fixlast="true"
+                    />
+                  </target> 
+                </configuration>                         
+              </execution>                     
+            </executions>                         
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+
 </project>

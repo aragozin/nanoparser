@@ -1,12 +1,12 @@
 /*
  * Copyright (C) 2016 Alexey Ragozin
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -18,9 +18,9 @@ package org.gridkit.nanoparser;
 public class ParserException extends RuntimeException {
 
     private static final long serialVersionUID = 20151220L;
-    
+
     private Token token;
-    
+
     public ParserException(Token token, String message) {
         super(message);
         this.token = token;
@@ -30,15 +30,15 @@ public class ParserException extends RuntimeException {
         super(message, e);
         this.token = token;
     }
-    
+
     public Token getToken() {
         return token;
     }
-    
+
     public String formatVerboseErrorMessage() {
         return "Error: " + getMessage() + "\nLine: " + token.line() + " Position: " + token.pos() + "\n" + token.excerpt(60);
     }
-    
+
     /**
      * Extract a fragment of parsed text near error.
      * Result would include 2 lines, example is below
@@ -46,7 +46,7 @@ public class ParserException extends RuntimeException {
      * ABC + * XYZ
      *       ^
      * <pre>
-     * 
+     *
      * @return
      */
     public static String formatTokenExcertp(Token tkn, int lengthLimit) {

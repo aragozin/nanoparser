@@ -1,12 +1,12 @@
 /*
  * Copyright (C) 2016 Alexey Ragozin
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -35,12 +35,12 @@ public class NanoParserArithmTest extends ReflectionActionSource<Void> {
             .infixOp("*").rank(2)
             .enclosure("(", ")")
             .toScope();
-    
+
     @Term("DECIMAL")
     public Integer toInt(String param) {
         return Integer.valueOf(param);
     }
-    
+
     @Binary("+")
     public Integer plus(Integer a, Integer b) {
         return a + b;
@@ -78,9 +78,9 @@ public class NanoParserArithmTest extends ReflectionActionSource<Void> {
 
         return cases;
     }
-    
+
     private static void addCase(List<Object[]> cases, Object... c) {
-        cases.add(c);        
+        cases.add(c);
     }
 
     String expression;
@@ -94,7 +94,7 @@ public class NanoParserArithmTest extends ReflectionActionSource<Void> {
     @Test
     public void verify() {
         NanoParser<Void> parser = new NanoParser<Void>(SIMPLE_GRAMMAR, this);
-        
-        Assert.assertEquals(Integer.valueOf(expectedResult), parser.parse(null, Integer.class, expression));        
+
+        Assert.assertEquals(Integer.valueOf(expectedResult), parser.parse(null, Integer.class, expression));
     }
 }

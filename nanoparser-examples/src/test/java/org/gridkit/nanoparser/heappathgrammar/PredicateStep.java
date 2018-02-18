@@ -7,8 +7,8 @@ class PredicateStep implements HeapPathStep {
     public PredicateStep(Predicate predicate) {
         this.predicate = predicate;
     }
-    
+
     public String toString() {
         return "[" + predicate + "]";
-    }    
+    }
 }

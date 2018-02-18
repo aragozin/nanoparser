@@ -1,12 +1,12 @@
 /*
  * Copyright (C) 2016 Alexey Ragozin
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -36,12 +36,12 @@ public class MultiExpressionParserTest extends ReflectionActionSource<Void> {
             .enclosure("(", ")")
             .separator(";") // expression separator
             .toScope();
-    
+
     @Term("DECIMAL")
     public Integer toInt(String param) {
         return Integer.valueOf(param);
     }
-    
+
     @Binary("+")
     public Integer plus(Integer a, Integer b) {
         return a + b;
@@ -77,7 +77,7 @@ public class MultiExpressionParserTest extends ReflectionActionSource<Void> {
 
         return cases;
     }
-    
+
     private static CaseBuilder addCase(List<Object[]> cases) {
         CaseBuilder bc = new CaseBuilder();
         cases.add(new Object[]{bc.text, bc.results});
@@ -85,17 +85,17 @@ public class MultiExpressionParserTest extends ReflectionActionSource<Void> {
     }
 
     public static class CaseBuilder {
-        
+
         StringBuilder text = new StringBuilder();
         List<Integer> results = new ArrayList<Integer>();
-        
+
         public CaseBuilder match(String expression, int result) {
             text.append(expression);
             results.add(result);
             return this;
-        }        
+        }
     }
-    
+
     CharSequence expressions;
     List<Integer> expectedResults;
 
@@ -108,7 +108,7 @@ public class MultiExpressionParserTest extends ReflectionActionSource<Void> {
     public void verify() {
         NanoParser<Void> parser = new NanoParser<Void>(SIMPLE_GRAMMAR, this);
         SourceReader source = new SourceReader(expressions);
-        
+
         for(Integer result: expectedResults) {
             Integer val;
             try {
@@ -118,9 +118,9 @@ public class MultiExpressionParserTest extends ReflectionActionSource<Void> {
                 System.out.println(e.formatVerboseErrorMessage());
                 throw e;
             }
-            Assert.assertEquals(result, val);        
+            Assert.assertEquals(result, val);
         }
-        
+
         if (!source.endOfStream()) {
             Assert.fail("Some more input remains");
         }

@@ -21,10 +21,10 @@ public class ParserTest {
 
     @Rule
     public ParserTestHelper helper = new ParserTestHelper();
-    
+
     NanoParser<Void> parser = new NanoParser<Void>(RuleParser.MAIN_GRAMMAR, new RuleParser());
-    
-    
+
+
 /* TESTDATA
 
 a(X) :- true
@@ -75,7 +75,7 @@ a(X, Y) :- true
       symbol: true
     }
   }
-}     
+}
      */
     @Test
     public void parse_two_args_simple_rule() {
@@ -88,7 +88,7 @@ a(X) :- b(X, Y), c(Y)
 
 
 {
-  implication: true,  
+  implication: true,
   lhs: {
     params: [
       {
@@ -138,7 +138,7 @@ a(X) :- (b(X, Y), c(Y))
 
 
 {
-  implication: true,  
+  implication: true,
   lhs: {
     params: [
       {
@@ -181,7 +181,7 @@ a(X) :- (b(X, Y), c(Y))
     public void parse_simple_eclosure_two_right_side_rules() {
         test_ast();
     }
-    
+
     /* TESTDATA
 
 a(X) :- lit, b(X, Y), c(Y)
@@ -428,10 +428,10 @@ a(f(A, B)) :- true
     public void parse_lhs_pattern_matching() {
         test_ast();
     }
-    
+
     /* TESTDATA
 
-a(A) :- 
+a(A) :-
  is_list(A),
  true.
 is_list(A) := instance_of(A, "java.util.List").
@@ -494,7 +494,7 @@ is_list(A) := instance_of(A, "java.util.List").
       symbol: instance_of
     }
   }
-}     
+}
      */
     @Test
     public void parse_multiple_rules() {
@@ -503,9 +503,9 @@ is_list(A) := instance_of(A, "java.util.List").
 
     @Test @Ignore
     public void validate_parser() {
-    	Assert.assertEquals("", SemanticValidator.validate(RuleParser.MAIN_GRAMMAR, new RuleParser()));
+        Assert.assertEquals("", SemanticValidator.validate(RuleParser.MAIN_GRAMMAR, new RuleParser()));
     }
-    
+
     protected void test_ast() {
         try {
             helper.verifyAST(parseStatements(helper.getParseString()));
@@ -515,7 +515,7 @@ is_list(A) := instance_of(A, "java.util.List").
             throw e;
         }
     }
-    
+
     protected Statement[] parseStatements(String text) {
         List<Statement> result = new ArrayList<Statement>();
         SourceReader reader = new SourceReader(text);
@@ -525,11 +525,11 @@ is_list(A) := instance_of(A, "java.util.List").
                 result.add(stm);
             }
         }
-        
+
         return result.toArray(new Statement[0]);
     }
-    
-    public String format(Object obj) throws IllegalArgumentException, IllegalAccessException {        
+
+    public String format(Object obj) throws IllegalArgumentException, IllegalAccessException {
         StringBuilder sb = new StringBuilder();
         format(obj, sb);
         return sb.toString();
@@ -580,5 +580,5 @@ is_list(A) := instance_of(A, "java.util.List").
             }
             sb.append("}");
         }
-    }    
+    }
 }

@@ -10,7 +10,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
     public class SimpleArithmeticParser extends ReflectionActionSource<Void> {
-    
+
         public static final SyntaticScope SIMPLE_GRAMMAR = NanoGrammar.newParseTable()
                               // leading tilde (~) in token use for RegEx
                 .skip("~\\s") // ignore white spaces
@@ -22,32 +22,32 @@ import org.junit.Test;
                 .enclosure("max", "~max\\(", ")") // hard coded function
                 .nestedInfixOp(",").rank(0) // comma would be accepted only with "max(...)"
                 .toScope();
-        
+
         @Term("DECIMAL")
         public Integer toInt(String param) {
             return Integer.valueOf(param);
         }
-        
+
         @Binary("+")
         public Integer plus(Integer a, Integer b) {
             return a + b;
         }
-    
+
         @Unary("-")
         public Integer minus(Integer a) {
             return -a;
         }
-    
+
         @Binary("-")
         public Integer minus(Integer a, Integer b) {
             return a - b;
         }
-    
+
         @Binary("*")
         public Integer mult(Integer a, Integer b) {
             return a * b;
         }
-    
+
         // Function takes multiple arguments separated by comma
         @Unary("max")
         public Integer max(int[] args) {
@@ -59,7 +59,7 @@ import org.junit.Test;
             }
             return n;
         }
-        
+
         // Comma operator to collect argument for a function
         @Binary(",")
         public int[] args(@Convertible int[] head, Integer tail) {
@@ -67,18 +67,18 @@ import org.junit.Test;
             r[head.length] = tail;
             return r;
         }
-    
+
         // Trivial conversion of single value to one element list, used comma syntax
         @Convertion
         public int[] convert(Integer n) {
             return new int[]{n};
         }
-        
+
         @Test
         public void test() {
-            
+
             NanoParser<Void> parser = new NanoParser<Void>(SIMPLE_GRAMMAR, this);
-            
+
             try {
                 Assert.assertEquals(Integer.valueOf(3), parser.parse(null, Integer.class, "1+2"));
                 Assert.assertEquals(Integer.valueOf(7), parser.parse(null, Integer.class, "1+2*3"));
@@ -98,5 +98,5 @@ import org.junit.Test;
                 System.out.println(e.formatVerboseErrorMessage());
                 throw e;
             }
-        }        
+        }
     }
