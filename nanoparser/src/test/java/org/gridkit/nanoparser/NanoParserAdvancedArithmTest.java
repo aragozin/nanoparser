@@ -1,12 +1,12 @@
 /*
  * Copyright (C) 2016 Alexey Ragozin
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -43,12 +43,12 @@ public class NanoParserAdvancedArithmTest extends ReflectionActionSource<Void> {
             .enclosure("[", "]")
                 .implicitPrefixOp("AT")
             .toScope();
-    
+
     @Term("DECIMAL")
     public Integer toInt(String param) {
         return Integer.valueOf(param);
     }
-    
+
     @Binary("+")
     public Integer plus(Integer a, Integer b) {
         return a + b;
@@ -114,25 +114,25 @@ public class NanoParserAdvancedArithmTest extends ReflectionActionSource<Void> {
 
     @Term("CALL")
     public Integer call(@Source Token func, @Source Token p1, @Source Token p2, String body) {
-    	return 0;
+        return 0;
     }
-    
+
     @Unary("CALL")
     public Integer call(@Source Token func, @Source Token par, @Convertible int[] array) {
-    	int m = array[0];
-    	if ("min".equals(func.tokenBody())) {
-    		for(int n: array) {
-    			m = Math.min(m, n);
-    		}
-    	}
-    	else {
-    		for(int n: array) {
-    			m = Math.max(m, n);
-    		}    		
-    	}
-    	return m;
+        int m = array[0];
+        if ("min".equals(func.tokenBody())) {
+            for(int n: array) {
+                m = Math.min(m, n);
+            }
+        }
+        else {
+            for(int n: array) {
+                m = Math.max(m, n);
+            }
+        }
+        return m;
     }
-    
+
 // Now value -> singleton conversion is automatic
 //    @Convertion
 //    public int[] int2array(Integer a) {
@@ -153,7 +153,7 @@ public class NanoParserAdvancedArithmTest extends ReflectionActionSource<Void> {
         addCase(cases, "-2 * 3 + 1", -5);
         addCase(cases, "-3 * -2", 6);
         addCase(cases, "--1", 1);
-        
+
         addCase(cases, "{1, 2, 3}[1 + 0]", 2);
         addCase(cases, "({1, 2, 3})[1 *2]", 3);
         addCase(cases, "({1, 2, 3} + {4, 5, 6})[4]", 5);
@@ -166,9 +166,9 @@ public class NanoParserAdvancedArithmTest extends ReflectionActionSource<Void> {
 
         return cases;
     }
-    
+
     private static void addCase(List<Object[]> cases, Object... c) {
-        cases.add(c);        
+        cases.add(c);
     }
 
     String expression;
@@ -183,7 +183,7 @@ public class NanoParserAdvancedArithmTest extends ReflectionActionSource<Void> {
     public void verify() {
         try {
             NanoParser<Void> parser = new NanoParser<Void>(SIMPLE_GRAMMAR, this);
-            
+
             Assert.assertEquals(Integer.valueOf(expectedResult), parser.parse(null, Integer.class, expression));
         }
         catch(ParserException e) {

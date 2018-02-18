@@ -23,8 +23,8 @@ public class RuleParser extends ReflectionActionSource<Void> {
             .term("ESCAPE", "~\\\\.")
             .glueOp("CONCAT")
             .toScope();
-            
-    
+
+
     public static final SyntaticScope MAIN_GRAMMAR = NanoGrammar.newParseTable()
             // leading tilde (~) in token use for RegEx
             .skip("~\\s") // ignore white spaces
@@ -38,13 +38,13 @@ public class RuleParser extends ReflectionActionSource<Void> {
                 .nestedInfixOrPrefixOp("-").rank(4)
                 .nestedInfixOp("*").rank(5)
                 .nestedInfixOp("/").rank(5)
-                            
+
             .infixOp(":-").rank(1) // implication
             .infixOp(":=").rank(1) // invariant
 
             .infixOp("|").rank(2)
             .infixOp(",").rank(3)
-            
+
             .prefixOp("!").rank(6)
             .separator(".")
             .toScope();
@@ -73,7 +73,7 @@ public class RuleParser extends ReflectionActionSource<Void> {
     public String string(String param) {
         return param;
     }
-    
+
     @Term("ESCAPE")
     public String escapeChar(String escape) {
         if (escape.startsWith("\\x")) {
@@ -84,12 +84,12 @@ public class RuleParser extends ReflectionActionSource<Void> {
             return escape.substring(1);
         }
     }
-    
+
     @Binary("CONCAT")
     public String concat(String a, String b) {
         return a + b;
     }
-    
+
     @Convertion
     public Expr var2expr(Var var) {
         return new Expr(var);
@@ -109,7 +109,7 @@ public class RuleParser extends ReflectionActionSource<Void> {
     public Expr functor2expr(Functor functor) {
         return new Expr(functor);
     }
-    
+
     @Convertion
     public Clause simpleClause(Functor functor) {
         return new Clause(functor);
@@ -139,7 +139,7 @@ public class RuleParser extends ReflectionActionSource<Void> {
     public InvariantRule invariant(Functor lhs, @Convertible Clause rhs) {
         return new InvariantRule(lhs, rhs);
     }
-    
+
     @Binary(",")
     public Clause clauseList(@Convertible Clause a, @Convertible Clause b) {
         return new Clause(new BoolClause(a, b, true));
@@ -147,13 +147,13 @@ public class RuleParser extends ReflectionActionSource<Void> {
 
     @Binary(",")
     public Expr[] exprList(@Convertible Expr a, @Convertible Expr b) {
-        return new Expr[]{a, b};        
+        return new Expr[]{a, b};
     }
 
     @Binary(",")
     public Expr[] exprList(Expr[] a, @Convertible Expr b) {
         Expr[] r = Arrays.copyOf(a, a.length + 1);
         r[a.length] = b;
-        return r;        
-    }    
+        return r;
+    }
 }

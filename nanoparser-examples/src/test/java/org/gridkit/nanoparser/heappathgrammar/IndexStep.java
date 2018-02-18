@@ -7,9 +7,9 @@ class IndexStep implements HeapPathStep {
     public IndexStep(int index) {
         this.index = index;
     }
-    
+
     @Override
     public String toString() {
         return "[" + (index < 0 ? "*" : index) + "]";
-    }    
+    }
 }

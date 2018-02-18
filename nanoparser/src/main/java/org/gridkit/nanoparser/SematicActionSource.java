@@ -16,48 +16,48 @@ public interface SematicActionSource<C> {
 
     public Collection<Converter<C>> enumConverters();
 
-	
+
     public interface TermAction<C> {
 
-    	public String opId();
-    	
+        public String opId();
+
         public Class<?> returnType();
-        
+
         public <R> TermActionHandler<C, R> handler();
     }
-        
-    public interface Converter<C> {
-    	
-    	public Class<?> returnType();
 
-    	public Class<?> inputType();
-    	
-    	public <R, A> UnaryActionHandler<C, R, A> handler();
+    public interface Converter<C> {
+
+        public Class<?> returnType();
+
+        public Class<?> inputType();
+
+        public <R, A> UnaryActionHandler<C, R, A> handler();
     }
-    
+
     public interface UnaryAction<C> {
 
-    	public String opId();
+        public String opId();
 
-    	public Class<?> returnType();
+        public Class<?> returnType();
 
         public Class<?> argType();
-        
+
         public Collection<Class<?>> convertibleArgTypes();
-        
+
         public <R, A> UnaryActionHandler<C, R, A> handler();
     }
 
     public interface BinaryAction<C> {
 
-    	public String opId();
+        public String opId();
 
-    	public Class<?> returnType();
+        public Class<?> returnType();
 
         public Class<?> leftType();
 
         public Class<?> rightType();
-        
+
         public Collection<Class<?>> convertibleLeftTypes();
 
         public Collection<Class<?>> convertibleRightTypes();

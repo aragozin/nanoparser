@@ -7,11 +7,11 @@ public class TypeConjunction implements TypeMatch {
     public TypeConjunction(TypeMatch[] matches) {
         this.matches = matches;
     }
-    
+
     public TypeMatch[] getElements() {
         return matches;
     }
-    
+
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
@@ -22,5 +22,5 @@ public class TypeConjunction implements TypeMatch {
             sb.append(match);
         }
         return sb.toString();
-    }    
+    }
 }

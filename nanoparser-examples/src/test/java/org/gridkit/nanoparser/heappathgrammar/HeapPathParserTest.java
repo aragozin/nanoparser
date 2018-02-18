@@ -62,7 +62,7 @@ public class HeapPathParserTest {
     }
 
     HeapPathParser parser = new HeapPathParser();
-    
+
     String expr;
     String expected;
 

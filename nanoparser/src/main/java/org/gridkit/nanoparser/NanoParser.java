@@ -1,12 +1,12 @@
 /*
  * Copyright (C) 2016 Alexey Ragozin
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -30,39 +30,39 @@ import org.gridkit.nanoparser.SemanticActionSolver.TypeSet;
 public class NanoParser<C> {
 
     private final static OperatorInfo EVAL_OP = new OperatorInfo(NanoGrammar.ACTION_EVAL, OpType.UNARY, 0, true);
-    
+
     private final SemanticActionHandler<C> actionDispatcher;
     private final SemanticActionSolver typeSolver;
     private final ParseTable parseTable;
-    
+
     public NanoParser(SemanticActionHandler<C> actionDispatcher, SyntaticScope scope) {
         this.actionDispatcher = actionDispatcher;
         this.typeSolver = new SemanticActionSolver(actionDispatcher);
         this.parseTable = new ParseTable(scope);
     }
-    
+
     @SuppressWarnings("unchecked")
-	public NanoParser(SyntaticScope scope, SematicActionSource<C> actionSource) {
-    	this(new MultiSourceSemanticHandler<C>(new SematicActionSource[]{actionSource}), scope);
+    public NanoParser(SyntaticScope scope, SematicActionSource<C> actionSource) {
+        this(new MultiSourceSemanticHandler<C>(new SematicActionSource[]{actionSource}), scope);
     }
 
     @SuppressWarnings("unchecked")
     public NanoParser(SyntaticScope scope, SematicActionSource<C> actionSource1, SematicActionSource<C> actionSource2) {
-    	this(new MultiSourceSemanticHandler<C>(new SematicActionSource[]{actionSource1, actionSource2}), scope);
+        this(new MultiSourceSemanticHandler<C>(new SematicActionSource[]{actionSource1, actionSource2}), scope);
     }
 
     @SuppressWarnings("unchecked")
     public NanoParser(SyntaticScope scope, SematicActionSource<C> actionSource1, SematicActionSource<C> actionSource2, SematicActionSource<C> actionSource3) {
-    	this(new MultiSourceSemanticHandler<C>(new SematicActionSource[]{actionSource1, actionSource2, actionSource3}), scope);
+        this(new MultiSourceSemanticHandler<C>(new SematicActionSource[]{actionSource1, actionSource2, actionSource3}), scope);
     }
 
     public NanoParser(SyntaticScope scope, SematicActionSource<C>... actionSources) {
-    	this(new MultiSourceSemanticHandler<C>(actionSources), scope);
+        this(new MultiSourceSemanticHandler<C>(actionSources), scope);
     }
-    
+
     public <T> T parse(C parserContext, Class<T> type, String text) {
-    	SourceReader source = new SourceReader(text);
-    	return parse(parserContext, type, source);
+        SourceReader source = new SourceReader(text);
+        return parse(parserContext, type, source);
     }
 
     /**
@@ -97,13 +97,13 @@ public class NanoParser<C> {
         Object v = convertTree(parserContext, type, node);
         return type.cast(v);
     }
-    
+
     protected <T> ParseNode parse(SourceReader stream, ParseTable table, String eoeToken) {
         ParserState parser = new ParserState();
-        
+
         tokenLoop:
         while(!stream.endOfStream()) {
-            
+
             if (table.skipPattern != null && stream.matchToken(table.skipPattern) != null) {
                 continue;
             }
@@ -119,10 +119,10 @@ public class NanoParser<C> {
                 if (tkn != null) {
                     if (pat.term) {
                         if (pat.operatorInfo.id().equals(eoeToken)) {
-                            // end of expression token 
-                            break tokenLoop;                            
+                            // end of expression token
+                            break tokenLoop;
                         }
-                        
+
                         ParseNode lastNode = parser.isEmpty() ? null : parser.last();
                         if (lastNode != null && lastNode.isTerm()) {
 
@@ -132,24 +132,24 @@ public class NanoParser<C> {
                                 node.op = pat.prefixOp;
                                 node.token = prev;
                                 node.rank = pat.prefixOp.rank();
-                                parser.pushToken(node);                                                            
+                                parser.pushToken(node);
                             }
                             else if (lastNode.rule != null && lastNode.rule.postfixOp != null) {
                                 ParseNode node = new ParseNode();
                                 node.op = lastNode.rule.postfixOp;
                                 node.token = prev;
                                 node.rank = lastNode.rule.postfixOp.rank();
-                                parser.pushToken(node);                                                                                            
+                                parser.pushToken(node);
                             }
                             else if (table.glueToken != null) {
                                 ParseNode node = new ParseNode();
                                 node.op = table.glueToken;
                                 node.token = prev;
                                 node.rank = table.glueToken.rank();
-                                parser.pushToken(node);                            
-                            }                                
+                                parser.pushToken(node);
+                            }
                         }
-                        
+
                         ParseNode node = new ParseNode();
                         node.rule = pat;
                         node.op = pat.operatorInfo;
@@ -160,7 +160,7 @@ public class NanoParser<C> {
                     else if (pat.enclosing) {
                         boolean implPrefix = false;
                         if (pat.prefixOp != null) {
-                            if (!pat.optionalPrefix || parser.isOperatorExpected()) { 
+                            if (!pat.optionalPrefix || parser.isOperatorExpected()) {
                                 ParseNode prefOp = new ParseNode();
                                 prefOp.op = pat.prefixOp;
                                 prefOp.token = tkn;
@@ -174,17 +174,17 @@ public class NanoParser<C> {
                             node.op = table.glueToken;
                             node.token = prev;
                             node.rank = table.glueToken.rank();
-                            parser.pushToken(node);                                                    	
+                            parser.pushToken(node);
                         }
                         ParseNode node = new ParseNode();
                         node.rule = pat;
                         node.op = pat.operatorInfo;
                         node.token = tkn;
                         node.rank = -1;
-                 
+
                         node.leftNode = parse(stream, pat.subtable(implPrefix), null);
-                        
-                        parser.pushToken(node);                        
+
+                        parser.pushToken(node);
                     }
                     else {
                         // regular operator
@@ -193,13 +193,13 @@ public class NanoParser<C> {
                         node.op = pat.operatorInfo;
                         node.token = tkn;
                         node.rank = pat.operatorInfo.rank();
-                        
+
                         parser.pushToken(node);
                     }
-                    
+
                     // Token processed
                     continue tokenLoop;
-                }                
+                }
             }
             // No token matched
             error(prev, "Cannot parse next token");
@@ -215,7 +215,7 @@ public class NanoParser<C> {
     }
 
     private <T> Object convertTree(C parserContext, Class<T> type, ParseNode node) {
-    	markTypes(typeSolver.setOf(type), node);
+        markTypes(typeSolver.setOf(type), node);
         Error error = mapActions(type, node, -1);
         if (error == null) {
             return applyActions(parserContext, type, node);
@@ -224,7 +224,7 @@ public class NanoParser<C> {
             throw new ParserException(error.token, error.message);
         }
     }
-    
+
     private Error mapActions(Class<?> type, ParseNode node, int bestParsed) {
         if (isTerm(node)) {
             return mapTermAction(type, node, bestParsed);
@@ -321,7 +321,7 @@ public class NanoParser<C> {
             Class<?> rt = h.rightType();
             Error e = mapActions(lt, node.leftNode, progress);
             progress = node.leftNode.token.offset();
-            if (e == null) {                
+            if (e == null) {
                 e = mapActions(rt, node.rightNode, progress);
             }
             if (e != null) {
@@ -371,9 +371,9 @@ public class NanoParser<C> {
         }
         else {
             return defaultBinaryType(node.op.id(), defaultType(node.leftNode), defaultType(node.rightNode));
-        }        
+        }
     }
-    
+
     private Class<?> defaultTermType(String id) {
         if (NanoGrammar.ACTION_NOOP.equals(id)) {
             return String.class;
@@ -401,11 +401,11 @@ public class NanoParser<C> {
         return hh.length > 0 ? hh[0].returnType() : null;
     }
 
-    
-    private void markTypes(TypeSet masterSet, ParseNode node) {
-    	node.typeMarkUp = typeSolver.setOf();
 
-    	if (isTerm(node)) {
+    private void markTypes(TypeSet masterSet, ParseNode node) {
+        node.typeMarkUp = typeSolver.setOf();
+
+        if (isTerm(node)) {
             markTermTypes(masterSet, node);
         }
         else if (isUnary(node)) {
@@ -414,59 +414,59 @@ public class NanoParser<C> {
         else {
             mapBinaryTypes(masterSet, node);
         }
-    	
-    	if (node.typeMarkUp.isEmpty()) {
-    		errorHook();
-    	}
+
+        if (node.typeMarkUp.isEmpty()) {
+            errorHook();
+        }
     }
 
     protected void errorHook() {
-    	// just for setting break points
+        // just for setting break points
     }
-    
+
     protected void markTermTypes(TypeSet masterSet, ParseNode node) {
         if (NanoGrammar.ACTION_NOOP.equals(node.op.id())) {
             if (masterSet.contains(String.class)) {
-            	node.typeMarkUp.add(String.class);
+                node.typeMarkUp.add(String.class);
             }
         }
         else {
             TermActionHandler<?, ?>[] hh = actionDispatcher.enumTerm(node.op.id(), null);
             for(TermActionHandler<?, ?> h: hh) {
-            	if (masterSet.contains(h.returnType())) {
-            		node.typeMarkUp.add(h.returnType());
-            	}
+                if (masterSet.contains(h.returnType())) {
+                    node.typeMarkUp.add(h.returnType());
+                }
             }
         }
         if (node.typeMarkUp.isEmpty()) {
-        	// error condition
+            // error condition
         }
     }
 
     protected void markUnaryTypes(TypeSet masterSet, ParseNode node) {
         if (NanoGrammar.ACTION_NOOP.equals(node.op.id())) {
-        	markTypes(masterSet, node.leftNode);
-        	node.typeMarkUp.addAll(node.leftNode.typeMarkUp);
+            markTypes(masterSet, node.leftNode);
+            node.typeMarkUp.addAll(node.leftNode.typeMarkUp);
         }
         else {
             UnaryActionHandler<?, ?, ?>[] hh = actionDispatcher.enumUnaries(node.op.id(), null, null);
             TypeSet sub = typeSolver.setOf();
             for(UnaryActionHandler<?, ?, ?> h: hh) {
-            	if (masterSet.contains(h.returnType())) {
-            		sub.add(h.argType());
-            	}
+                if (masterSet.contains(h.returnType())) {
+                    sub.add(h.argType());
+                }
             }
             markTypes(sub, node.leftNode);
             for(UnaryActionHandler<?, ?, ?> h: hh) {
-            	if (masterSet.contains(h.returnType())) {
-            		if (node.leftNode.typeMarkUp.contains(h.argType())) {
-            			node.typeMarkUp.add(h.returnType());
-            		}
-            	}
+                if (masterSet.contains(h.returnType())) {
+                    if (node.leftNode.typeMarkUp.contains(h.argType())) {
+                        node.typeMarkUp.add(h.returnType());
+                    }
+                }
             }
         }
         if (node.typeMarkUp.isEmpty()) {
-        	// error condition
+            // error condition
         }
     }
 
@@ -474,26 +474,26 @@ public class NanoParser<C> {
 
         BinaryActionHandler<?, ?, ?, ?>[] hh = actionDispatcher.enumBinaries(node.op.id(), null, null, null);
 
-    	TypeSet lts = typeSolver.setOf();
-    	TypeSet rts = typeSolver.setOf();
-    	
+        TypeSet lts = typeSolver.setOf();
+        TypeSet rts = typeSolver.setOf();
+
         for(BinaryActionHandler<?, ?, ?, ?> h: hh) {
-        	if (masterSet.contains(h.returnType())) {
-        		lts.add(h.leftType());
-        		rts.add(h.rightType());
-        	}
+            if (masterSet.contains(h.returnType())) {
+                lts.add(h.leftType());
+                rts.add(h.rightType());
+            }
         }
         markTypes(lts, node.leftNode);
         markTypes(rts, node.rightNode);
         for(BinaryActionHandler<?, ?, ?, ?> h: hh) {
-        	if (masterSet.contains(h.returnType())) {
-        		if (node.leftNode.typeMarkUp.contains(h.leftType()) && node.rightNode.typeMarkUp.contains(h.rightType())) {
-        			node.typeMarkUp.add(h.returnType());
-        		}
-        	}
+            if (masterSet.contains(h.returnType())) {
+                if (node.leftNode.typeMarkUp.contains(h.leftType()) && node.rightNode.typeMarkUp.contains(h.rightType())) {
+                    node.typeMarkUp.add(h.returnType());
+                }
+            }
         }
     }
-    
+
     @SuppressWarnings("unchecked")
     private Object applyTermAction(C parserContext, Class<?> type, ParseNode node) {
         if (node.inferedHandler == null) {
@@ -542,11 +542,11 @@ public class NanoParser<C> {
             throw new ParserException(tkn, e.getMessage(), e);
         }
     }
-    
-    private boolean isTerm(ParseNode node) {        
+
+    private boolean isTerm(ParseNode node) {
         return node.leftNode == null;
     }
-    
+
     private boolean isUnary(ParseNode node) {
         return node.rightNode == null;
     }
@@ -562,21 +562,21 @@ public class NanoParser<C> {
         error.bestProgress = bestParsed;
         return error;
     }
-    
+
     protected static abstract class Error {
-        
+
         Token token;
         String message;
         int bestProgress;
-        
+
         @Override
         public String toString() {
             return message;
         }
     }
-    
+
     private static class ConversionError extends Error {
-        
+
         public ConversionError(Token token, Class<?> targetType, Class<?> sourceType) {
             this.token = token;
             this.message = "Required type '" + targetType.getSimpleName() + "' but found '" + sourceType.getSimpleName() + "'";
@@ -592,20 +592,20 @@ public class NanoParser<C> {
             this.bestProgress = token.offset();
         }
     }
-    
+
     protected static void error(Token token, String message) {
         error(token, message, null);
     }
 
     protected static void error(Token token, String message, Exception e) {
-        if (e != null) {    
+        if (e != null) {
             throw new ParserException(token, message, e);
         }
         else {
             throw new ParserException(token, message);
         }
     }
-    
+
     private static class ParseTable implements ScopeBuilder {
 
         private List<ParseTableElement> table = new ArrayList<NanoParser.ParseTableElement>();
@@ -616,7 +616,7 @@ public class NanoParser<C> {
         public ParseTable(SyntaticScope scope) {
             scope.apply(this);
         }
-        
+
         @Override
         public void addEnclosing(TokenMatcher[] matchers, OperatorInfo op, OperatorInfo prefixOp, boolean optionalPrefix, SyntaticScope perfixedNestedScope, SyntaticScope normalNestedScope) {
             ParseTableElement e = new ParseTableElement(matchers);
@@ -628,7 +628,7 @@ public class NanoParser<C> {
             e.optionalPrefix = optionalPrefix;
             table.add(e);
         }
-        
+
         @Override
         public void addGlueOperator(OperatorInfo op) {
             if (glueToken != null) {
@@ -636,14 +636,14 @@ public class NanoParser<C> {
             }
             glueToken = op;
         }
-        
+
         @Override
         public void addOperator(TokenMatcher[] matchers, OperatorInfo op) {
             ParseTableElement e = new ParseTableElement(matchers);
             e.operatorInfo = op;
             table.add(e);
         }
-        
+
         @Override
         public void addScopeEscapeToken(TokenMatcher[] matchers) {
             if (escapeToken != null) {
@@ -651,7 +651,7 @@ public class NanoParser<C> {
             }
             escapeToken = matchers;
         }
-        
+
         @Override
         public void addToken(TokenMatcher[] tmatcher, OperatorInfo op, OperatorInfo implicitPrefix, OperatorInfo implicitPostfix) {
             ParseTableElement e = new ParseTableElement(tmatcher);
@@ -667,18 +667,18 @@ public class NanoParser<C> {
             }
             table.add(e);
         }
-        
+
         @Override
         public void addSkipToken(TokenMatcher pattern) {
             if (skipPattern != null) {
                 skipPattern = skipPattern.append(pattern);
             }
             else {
-            	skipPattern = new MultiMatcher(pattern);
+                skipPattern = new MultiMatcher(pattern);
             }
         }
     }
-    
+
     private static class ParserState {
 
         List<ParseNode> stack = new ArrayList<ParseNode>();
@@ -686,30 +686,30 @@ public class NanoParser<C> {
         public boolean isEmpty() {
             return stack.isEmpty();
         }
-        
+
         public boolean isOperatorExpected() {
             return !isEmpty() && (last().rank < 0 || last().op.isPostfix());
         }
 
         private ParseNode collapse(Token mark) {
-            
+
             if (stack.isEmpty()) {
                 error(mark, "Empty expression");
             }
             if (last().rank > 0 && !last().op.isPostfix()) {
-            	error(last().token, "Missing right hand side '" + last().token.tokenBody() + "'");
+                error(last().token, "Missing right hand side '" + last().token.tokenBody() + "'");
             }
-            
+
             while(stack.size() > 1) {
                 mergeLastOp();
             }
             return stack.get(0);
         }
-        
+
         private ParseNode last() {
             return stack.get(stack.size() - 1);
         }
-        
+
         private void pushToken(ParseNode op) {
             if (op.rank < 0) {
                 if (stack.isEmpty()) {
@@ -742,7 +742,7 @@ public class NanoParser<C> {
                     if (lor < 0 || lor < op.rank) {
                         stack.add(op);
                         if (op.op.isPostfix()) {
-                        	mergeLastOp();
+                            mergeLastOp();
                         }
                         break;
                     }
@@ -767,7 +767,7 @@ public class NanoParser<C> {
                 }
             }
         }
-        
+
         private int lastOpRank() {
             if (stack.size() == 0) {
                 return -1;
@@ -786,7 +786,7 @@ public class NanoParser<C> {
                 }
             }
         }
-        
+
         private void mergeLastOp() {
             int s = stack.size();
             ParseNode b = stack.remove(s - 1);
@@ -816,7 +816,7 @@ public class NanoParser<C> {
                     o.rightNode = null;
                     o.rank = -1;
                     stack.add(o);
-                }                
+                }
             }
             else {
                 ParseNode a = stack.remove(s - 3);
@@ -828,9 +828,9 @@ public class NanoParser<C> {
             }
         }
     }
-    
+
     private static class ParseTableElement {
-        
+
         TokenMatcher[] matchers;
         boolean term;
         boolean enclosing;
@@ -844,9 +844,9 @@ public class NanoParser<C> {
         SyntaticScope nsubscope;
         ParseTable psubtable;
         ParseTable nsubtable;
-        
+
         public ParseTableElement(TokenMatcher[] matchers) {
-        	this.matchers = matchers;
+            this.matchers = matchers;
         }
 
         public synchronized ParseTable subtable(boolean implPrefix) {
@@ -854,18 +854,18 @@ public class NanoParser<C> {
                 if (psubtable == null) {
                     psubtable = new ParseTable(psubscope);
                 }
-                
+
                 return psubtable;
             }
             else {
                 if (nsubtable == null) {
                     nsubtable = new ParseTable(nsubscope);
                 }
-                
-                return nsubtable;                
+
+                return nsubtable;
             }
         }
-        
+
         public String toString() {
             if (term) {
                 return "TERM{" + matchersToString(matchers) + "}";
@@ -878,22 +878,22 @@ public class NanoParser<C> {
             }
         }
     }
-    
+
     protected static class ParseNode {
-        
+
         Token token;
         int rank; // -1 is term rank
         ParseTableElement rule;
         OperatorInfo op;
         ParseNode leftNode;
         ParseNode rightNode;
-        
+
         TypeSet typeMarkUp;
 
         public boolean isTerm() {
             return rank < 0;
         }
-        
+
         // used to cache handler chosen by type inference
         Object inferedHandler;
 
@@ -907,7 +907,7 @@ public class NanoParser<C> {
             }
             return s;
         }
-        
+
         public int spanTo() {
             int s = token.offset() + token.tokenBody().length();
             if (leftNode != null) {
@@ -918,13 +918,13 @@ public class NanoParser<C> {
             }
             return s;
         }
-        
+
         public String getSpan() {
             StringBuilder sb = new StringBuilder();
             sb.append(token.source().subSequence(spanFrom(), spanTo()));
             return sb.toString();
         }
-        
+
         @Override
         public String toString() {
             StringBuilder sb = new StringBuilder();
@@ -941,15 +941,15 @@ public class NanoParser<C> {
             return sb.toString();
         }
     }
-    
+
     private static String matchersToString(TokenMatcher[] matchers) {
-    	StringBuilder sb = new StringBuilder();
-    	for(TokenMatcher tm: matchers) {
-    		if (sb.length() > 0) {
-    			sb.append(" ");
-    		}
-    		sb.append(tm.toString());
-    	}
-    	return sb.toString();
+        StringBuilder sb = new StringBuilder();
+        for(TokenMatcher tm: matchers) {
+            if (sb.length() > 0) {
+                sb.append(" ");
+            }
+            sb.append(tm.toString());
+        }
+        return sb.toString();
     }
 }

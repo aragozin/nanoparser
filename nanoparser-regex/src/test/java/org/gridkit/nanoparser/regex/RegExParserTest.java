@@ -12,14 +12,14 @@ public class RegExParserTest {
 
     @Test
     public void smoke() {
-        
+
         parse("[a-z]");
         parse("[a-z&&[^c]]");
         parse("[\\n-\\t&&[^c]]");
         fail ("[\\n-\\s&&[^c]]");
         parse("[\\d&&[^c]]");
-    	parse("a+bb*c");
-    	parse("\\s+\\p{Letter}");
+        parse("a+bb*c");
+        parse("\\s+\\p{Letter}");
         parse("a");
         parse("abc");
         parse("ab|cd");
@@ -28,35 +28,35 @@ public class RegExParserTest {
         fail ("ab|cd+*");
         parse("(.*)");
         parse("(?:.*)");
-        parse(".*(ab|[a-z]d).*");        
+        parse(".*(ab|[a-z]d).*");
         parse("a[b][^c]");
         parse(".*(IO.thread-out).*");
     }
-    
+
     @Test
     public void validate_parser() {
-    	Assert.assertEquals("", SemanticValidator.validate(RegExParser.PATTERN, new RegExParser()));
+        Assert.assertEquals("", SemanticValidator.validate(RegExParser.PATTERN, new RegExParser()));
     }
-    
+
     public PatternElement parse(String regEx) {
         try {
-        	TracingNanoParser<Void> np = new TracingNanoParser<Void>(RegExParser.PATTERN, new RegExParser());
-//        	np.setTraceOut(System.out);
-            
+            TracingNanoParser<Void> np = new TracingNanoParser<Void>(RegExParser.PATTERN, new RegExParser());
+//          np.setTraceOut(System.out);
+
             return np.parse(null, PatternElement.class, regEx);
         } catch (ParserException e) {
             System.err.println(e.formatVerboseErrorMessage());
             throw e;
         }
     }
-    
+
     public void fail(String regEx) {
-    	try {
-    		parse(regEx);
-    		Assert.fail("Exception expected");
-    	}
-    	catch(Exception e) {
-    		// ok
-    	}
+        try {
+            parse(regEx);
+            Assert.fail("Exception expected");
+        }
+        catch(Exception e) {
+            // ok
+        }
     }
 }

@@ -1,12 +1,12 @@
 /*
  * Copyright (C) 2016 Alexey Ragozin
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -22,12 +22,12 @@ import java.util.regex.Pattern;
 public class NanoGrammar {
 
     public static final String ACTION_NOOP = "";
-    
+
     /**
      * Pseudo action applied at top level
      * of expression evaluation if available.
      * <br/>
-     * May be exploited for additional top level 
+     * May be exploited for additional top level
      * conversion rules.
      */
     public static final String ACTION_EVAL = "#EVAL#";
@@ -37,7 +37,7 @@ public class NanoGrammar {
      * token used for multiple expression parsing.
      */
     public static final String ACTION_EOE = "#EOE#";
-    
+
     /**
      * @return Builder for new {@link SyntaticScope}
      */
@@ -62,9 +62,9 @@ public class NanoGrammar {
             throw new IllegalArgumentException("Only lazy scope is accepted");
         }
     }
-    
+
     public interface ParserBuilder<T extends ParserBuilder<?>> {
-        
+
         public T include(SyntaticScope scope);
 
         public TermBuilder<T> term(String pattern);
@@ -88,11 +88,11 @@ public class NanoGrammar {
         public OpPrefixBuilder<T> prefixOp(String opIDandPattern);
 
         public OpPostfixBuilder<T> postfixOp(String opID, String pattern);
-        
+
         public OpPostfixBuilder<T> postfixOp(String opIDandPattern);
 
         /**
-         * Brackets, parenthesis, braces, function calls, etc 
+         * Brackets, parenthesis, braces, function calls, etc
          * @return
          */
         public OpEnclosureBuilder<T> enclosure(String opID, String openPattern, String closePattern);
@@ -106,10 +106,10 @@ public class NanoGrammar {
         public OpEnclosureBuilder<T> enclosure(TokenMatcher[] openPattern, String closePattern);
 
         public OpEnclosureBuilder<T> enclosure(TokenMatcher[] openPattern, TokenMatcher[] closePattern);
-        
+
         /**
          * This operator would be applied implicitly if stream
-         * contains two consecutive terms. 
+         * contains two consecutive terms.
          */
         public OpInfixBuilder<T> glueOp(String opID);
 
@@ -123,19 +123,19 @@ public class NanoGrammar {
         public ParserBuilder<T> skip(TokenMatcher pattern);
 
         public ParserBuilder<T> skipSpace();
-        
+
         public SyntaticScope toLazyScope();
     }
-    
+
     public interface ParserBuilderTop<T extends ParserBuilder<?>> extends ParserBuilder<T> {
-        
+
         public SyntaticScope toScope();
 
         public SyntaticScope toLazyScope();
     }
-    
+
     public interface OpInfixBuilder<T extends ParserBuilder<?>> extends ParserBuilderTop<T> {
-        
+
         public OpInfixBuilder<T> rank(int id);
 
         /**
@@ -148,29 +148,29 @@ public class NanoGrammar {
     }
 
     public interface OpPrefixBuilder<T extends ParserBuilder<?>> extends ParserBuilderTop<T> {
-        
+
         public ParserBuilderTop<T> rank(int id);
     }
 
     public interface OpPostfixBuilder<T extends ParserBuilder<?>> extends ParserBuilderTop<T> {
-        
+
         public ParserBuilderTop<T> rank(int id);
     }
 
     public interface TermBuilder<T extends ParserBuilder<?>> extends ParserBuilderTop<T> {
-        
+
         public TermBuilder<T> implicitPrefixOp(String opID, int rank);
 
         public TermBuilder<T> implicitPostfixOp(String opID, int rank);
-    
+
     }
 
     public interface OpEnclosureBuilder<T extends ParserBuilder<?>> extends ParserBuilderTop<T> {
-        
+
         public ParserBuilderTop<T> scope(SyntaticScope scope);
 
         public ParserBuilderTop<T> scope(SyntaticScope prefixedScope, SyntaticScope normalScope);
-        
+
         public OpEnclosureBuilder<T> implicitPrefixOp(String opID);
 
         public OpEnclosureBuilder<T> implicitPrefixOp(String opID, boolean optional);
@@ -186,23 +186,23 @@ public class NanoGrammar {
         public OpEnclosureWithRankBuilder<T> nestedInfixOp(String opID, String pattern);
 
         public OpEnclosureWithRankBuilder<T> nestedInfixOrPrefixOp(String opIDandPattern);
-        
+
         public OpEnclosureWithRankBuilder<T> nestedInfixOrPrefixOp(String opID, String pattern);
 
     }
 
     public interface OpEnclosureWithRankBuilder<T extends ParserBuilder<?>> extends OpEnclosureBuilder<T> {
-        
+
         public OpEnclosureBuilder<T> rank(int rank);
     }
-    
+
     public static interface SyntaticScope {
-        
+
         public void apply(ScopeBuilder builder);
     }
-    
+
     public interface ScopeBuilder {
-        
+
         public void addToken(TokenMatcher[] pattern, OperatorInfo op, OperatorInfo implicitPerfix, OperatorInfo implicitPostfix);
 
         public void addOperator(TokenMatcher[] pattern, OperatorInfo op);
@@ -214,9 +214,9 @@ public class NanoGrammar {
         public void addScopeEscapeToken(TokenMatcher[] pattern);
 
         public void addSkipToken(TokenMatcher pattern);
-        
+
     }
-        
+
     public enum OpType {
         INFIX,
         INFIX_OR_PREFIX,
@@ -224,15 +224,15 @@ public class NanoGrammar {
         POSTFIX,
         UNARY
     }
-    
-    
+
+
     public final static class OperatorInfo {
-        
+
         private final String id;
         private final OpType type;
         private final int rank;
         private final boolean leftAssoc;
-        
+
         public OperatorInfo(String id, OpType type, int rank, boolean leftAssoc) {
             this.id = id;
             this.type = type;
@@ -243,7 +243,7 @@ public class NanoGrammar {
         public String id() {
             return id;
         }
-        
+
         public boolean isPrefix() {
             return type == OpType.PREFIX || type == OpType.INFIX_OR_PREFIX;
         }
@@ -251,7 +251,7 @@ public class NanoGrammar {
         public boolean isPostfix() {
             return type == OpType.POSTFIX;
         }
-        
+
         public OpType type() {
             return type;
         }
@@ -259,18 +259,18 @@ public class NanoGrammar {
         public int rank() {
             return rank;
         }
-        
+
         public boolean isLeftAssociative() {
             return leftAssoc;
         }
     }
-    
+
     @SuppressWarnings("rawtypes")
     private static class Builder implements ParserBuilder, OpEnclosureWithRankBuilder, OpInfixBuilder, OpPrefixBuilder, OpPostfixBuilder, TermBuilder {
-        
+
         List<OpHolder> holders = new ArrayList<OpHolder>();
         Class<?> holderType;
-        
+
         String id;
         TokenMatcher[] pattern;
         TokenMatcher[] pattern2;
@@ -289,11 +289,11 @@ public class NanoGrammar {
         SyntaticScope nscope;
 
         Builder nested;
-        
+
         private void push() {
             if (nested != null) {
                 nested.toScope(); // finalize
-                nested = null;                
+                nested = null;
             }
             if (holderType != null) {
                 if (holderType == OperatorHolder.class) {
@@ -304,24 +304,24 @@ public class NanoGrammar {
                     OperatorInfo opi = new OperatorInfo(id, type, rank, !rightAssoc);
                     OperatorInfo pre = prefixOp == null ? null : new OperatorInfo(prefixOp, OpType.INFIX, prefixOpRank, true);
                     OperatorInfo post = postfixOp == null ? null : new OperatorInfo(postfixOp, OpType.INFIX, postfixOpRank, true);
-                    holders.add(new TokenHolder(pattern, opi, pre, post));                    
+                    holders.add(new TokenHolder(pattern, opi, pre, post));
                 }
                 else if (holderType == GlueHolder.class) {
                     OperatorInfo opi = new OperatorInfo(id, type, rank, !rightAssoc);
-                    holders.add(new GlueHolder(opi));                    
+                    holders.add(new GlueHolder(opi));
                 }
                 else if (holderType == EnclosingHolder.class) {
                     OperatorInfo opi = new OperatorInfo(id, type, rank, !rightAssoc);
-                    OperatorInfo pop = prefixOp == null ? null : new OperatorInfo(prefixOp, OpType.INFIX, prefixOpRank, true); 
-                    holders.add(new EnclosingHolder(opi, pattern, pattern2, pscope, nscope, pop, optionalPrefix));                    
+                    OperatorInfo pop = prefixOp == null ? null : new OperatorInfo(prefixOp, OpType.INFIX, prefixOpRank, true);
+                    holders.add(new EnclosingHolder(opi, pattern, pattern2, pscope, nscope, pop, optionalPrefix));
                 }
                 else if (holderType == SkipHolder.class) {
-                    holders.add(new SkipHolder(skipPattern));                    
+                    holders.add(new SkipHolder(skipPattern));
                 }
-                
+
                 holderType = null;
                 id = null;
-                pattern = null; 
+                pattern = null;
                 pattern2 = null;
                 skipPattern = null;
                 prefixOp = null;
@@ -363,12 +363,12 @@ public class NanoGrammar {
 
         @Override
         public TermBuilder term(String opID, TokenMatcher[] pattern) {
-        	push();
-        	this.id = opID;
-        	this.type = OpType.UNARY;
-        	this.pattern = pattern;
-        	this.holderType = TokenHolder.class;
-        	return this;
+            push();
+            this.id = opID;
+            this.type = OpType.UNARY;
+            this.pattern = pattern;
+            this.holderType = TokenHolder.class;
+            return this;
         }
 
         @Override
@@ -432,7 +432,7 @@ public class NanoGrammar {
         public OpPrefixBuilder prefixOp(String opIDandPattern) {
             return prefixOp(opIDandPattern, opIDandPattern);
         }
-        
+
         @Override
         public OpPrefixBuilder prefixOp(String opID, String pattern) {
             validatePattern(pattern);
@@ -448,7 +448,7 @@ public class NanoGrammar {
         public OpPostfixBuilder postfixOp(String opIDandPattern) {
             return postfixOp(opIDandPattern, opIDandPattern);
         }
-        
+
         @Override
         public OpPostfixBuilder postfixOp(String opID, String pattern) {
             validatePattern(pattern);
@@ -467,37 +467,37 @@ public class NanoGrammar {
 
         @Override
         public OpEnclosureBuilder enclosure(String opID, TokenMatcher[] openPattern, String closePattern) {
-        	return enclosure(opID, openPattern, new TokenMatcher[]{simpleMatcher(closePattern)});
+            return enclosure(opID, openPattern, new TokenMatcher[]{simpleMatcher(closePattern)});
         }
 
         @Override
         public OpEnclosureBuilder enclosure(String opID, TokenMatcher[] openPattern, TokenMatcher[] closePattern) {
-        	push();
-        	this.id = opID;
-        	this.type = OpType.UNARY;
-        	this.pattern = openPattern;
-        	this.pattern2 = closePattern;
-        	this.holderType = EnclosingHolder.class;
-        	this.pscope = new LazyScope(this);
-        	this.nscope = pscope;
-        	return this;
+            push();
+            this.id = opID;
+            this.type = OpType.UNARY;
+            this.pattern = openPattern;
+            this.pattern2 = closePattern;
+            this.holderType = EnclosingHolder.class;
+            this.pscope = new LazyScope(this);
+            this.nscope = pscope;
+            return this;
         }
 
         @Override
         public OpEnclosureBuilder enclosure(String openPattern, String closePattern) {
-        	return enclosure("", new TokenMatcher[]{simpleMatcher(openPattern)}, new TokenMatcher[]{simpleMatcher(closePattern)});
+            return enclosure("", new TokenMatcher[]{simpleMatcher(openPattern)}, new TokenMatcher[]{simpleMatcher(closePattern)});
         }
 
         @Override
         public OpEnclosureBuilder enclosure(TokenMatcher[] openPattern, String closePattern) {
-        	return enclosure("", openPattern, new TokenMatcher[]{simpleMatcher(closePattern)});
+            return enclosure("", openPattern, new TokenMatcher[]{simpleMatcher(closePattern)});
         }
 
         @Override
         public OpEnclosureBuilder enclosure(TokenMatcher[] openPattern, TokenMatcher[] closePattern) {
-        	return enclosure("", openPattern, closePattern);
+            return enclosure("", openPattern, closePattern);
         }
-        
+
         @Override
         public OpInfixBuilder glueOp(String opID) {
             push();
@@ -506,30 +506,30 @@ public class NanoGrammar {
             this.holderType = GlueHolder.class;
             return this;
         }
-        
+
         @Override
         public ParserBuilder skip(String pattern) {
             validatePattern(pattern);
             push();
-            this.skipPattern = simpleMatcher(pattern); 
+            this.skipPattern = simpleMatcher(pattern);
             this.holderType = SkipHolder.class;
             return this;
         }
 
         @Override
         public ParserBuilder skip(String start, String end) {
-        	return skip(Tokens.comment(simpleMatcher(start), simpleMatcher(end)));
+            return skip(Tokens.comment(simpleMatcher(start), simpleMatcher(end)));
         }
 
         @Override
-		public ParserBuilder skip(TokenMatcher pattern) {
-			push();
-            this.skipPattern = pattern; 
+        public ParserBuilder skip(TokenMatcher pattern) {
+            push();
+            this.skipPattern = pattern;
             this.holderType = SkipHolder.class;
-			return this;
-		}
+            return this;
+        }
 
-		@Override
+        @Override
         public ParserBuilder skipSpace() {
             return skip(Tokens.whitespace());
         }
@@ -539,13 +539,13 @@ public class NanoGrammar {
             rightAssoc = false;
             return this;
         }
-        
+
         @Override
         public OpInfixBuilder rightAssoc() {
             rightAssoc = true;
             return this;
         }
-        
+
         public Builder rank(int rank) {
             if (nested != null) {
                 nested.rank(rank);
@@ -555,7 +555,7 @@ public class NanoGrammar {
             }
             return this;
         };
-        
+
         @Override
         public OpInfixBuilder scope(SyntaticScope scope) {
             this.pscope = scope;
@@ -587,12 +587,12 @@ public class NanoGrammar {
             nested.prefixOp(opID, pattern);
             return this;
         }
-        
+
         @Override
         public OpEnclosureWithRankBuilder nestedInfixOp(String opIDandPattern) {
             return nestedInfixOp(opIDandPattern, opIDandPattern);
         }
-        
+
         @Override
         public OpEnclosureWithRankBuilder nestedInfixOp(String opID, String pattern) {
             validatePattern(pattern);
@@ -605,12 +605,12 @@ public class NanoGrammar {
             nested.infixOp(opID, pattern);
             return this;
         }
-        
+
         @Override
         public OpEnclosureWithRankBuilder nestedInfixOrPrefixOp(String opIDandPattern) {
             return nestedInfixOrPrefixOp(opIDandPattern, opIDandPattern);
         }
-        
+
         @Override
         public OpEnclosureWithRankBuilder nestedInfixOrPrefixOp(String opID, String pattern) {
             validatePattern(pattern);
@@ -623,7 +623,7 @@ public class NanoGrammar {
             nested.infixOrPrefixOp(opID, pattern);
             return this;
         }
-        
+
         @Override
         public OpEnclosureBuilder implicitPrefixOp(String opID) {
             if (prefixOp != null) {
@@ -654,7 +654,7 @@ public class NanoGrammar {
             prefixOpRank = rank;
             return this;
         }
-        
+
         @Override
         public SyntaticScope toScope() {
             push();
@@ -666,9 +666,9 @@ public class NanoGrammar {
             return new LazyScope(this);
         }
     }
-    
+
     private static class LazyScope implements SyntaticScope {
-        
+
         private final Builder builder;
 //        private SyntaticScope scope;
 
@@ -681,16 +681,16 @@ public class NanoGrammar {
             this.builder.toScope().apply(builder);
         }
     }
-    
+
     private static abstract class OpHolder {
         public abstract void apply(ScopeBuilder builder);
     }
 
     private static class OperatorHolder extends OpHolder {
-        
+
         TokenMatcher[] pattern;
         OperatorInfo opInfo;
-        
+
         public OperatorHolder(TokenMatcher[] pattern, OperatorInfo opInfo) {
             this.pattern = pattern;
             this.opInfo = opInfo;
@@ -702,8 +702,8 @@ public class NanoGrammar {
     }
 
     private static class TokenHolder extends OpHolder  {
-        
-    	TokenMatcher[] pattern;
+
+        TokenMatcher[] pattern;
         OperatorInfo opInfo;
         OperatorInfo implicitPrefix;
         OperatorInfo implicitPostfix;
@@ -721,7 +721,7 @@ public class NanoGrammar {
     }
 
     private static class GlueHolder extends OpHolder  {
-        
+
         OperatorInfo opInfo;
 
         public GlueHolder(OperatorInfo opInfo) {
@@ -760,7 +760,7 @@ public class NanoGrammar {
 
     private static class SkipHolder extends OpHolder  {
 
-    	TokenMatcher pattern;
+        TokenMatcher pattern;
 
         public SkipHolder(TokenMatcher pattern) {
             this.pattern = pattern;
@@ -770,9 +770,9 @@ public class NanoGrammar {
             builder.addSkipToken(pattern);
         }
     }
-    
+
     private static class CloneHolder extends OpHolder {
-        
+
         private SyntaticScope scope;
 
         public CloneHolder(SyntaticScope scope) {
@@ -785,12 +785,12 @@ public class NanoGrammar {
         }
     }
 
-    
+
     private static class NestedScope implements SyntaticScope {
-        
+
         private final SyntaticScope scope;
         private final TokenMatcher[] escapePattern;
-        
+
         public NestedScope(SyntaticScope scope, TokenMatcher[] escapePattern) {
             this.scope = scope;
             this.escapePattern = escapePattern;
@@ -802,9 +802,9 @@ public class NanoGrammar {
             scope.apply(builder);
         }
     }
-    
+
     private static class SimpleScope implements SyntaticScope {
-        
+
         private final OpHolder[] holders;
 
         public SimpleScope(OpHolder[] holders) {
@@ -816,18 +816,18 @@ public class NanoGrammar {
             for(OpHolder holder: holders) {
                 holder.apply(builder);
             }
-        }        
+        }
     }
-    
+
     private static TokenMatcher simpleMatcher(String pattern) {
-    	if (pattern.startsWith("~")) {
-    		return new RegExMatcher(pattern.substring(1));
-    	}
-    	else {
-    		return new StringMatcher(pattern);
-    	}
+        if (pattern.startsWith("~")) {
+            return new RegExMatcher(pattern.substring(1));
+        }
+        else {
+            return new StringMatcher(pattern);
+        }
     }
-    
+
     /** Fail fast on invalid regex */
     private static void validatePattern(String text) {
         if (text.startsWith("~")) {

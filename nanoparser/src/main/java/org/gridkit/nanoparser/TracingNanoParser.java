@@ -6,51 +6,51 @@ import org.gridkit.nanoparser.NanoGrammar.SyntaticScope;
 
 public class TracingNanoParser<C> extends NanoParser<C> {
 
-	private PrintStream trace;
-	private int deepth;
+    private PrintStream trace;
+    private int deepth;
 
-	public TracingNanoParser(SemanticActionHandler<C> actionDispatcher, SyntaticScope scope) {
-		super(actionDispatcher, scope);
-	}
+    public TracingNanoParser(SemanticActionHandler<C> actionDispatcher, SyntaticScope scope) {
+        super(actionDispatcher, scope);
+    }
 
-	public TracingNanoParser(SyntaticScope scope, SematicActionSource<C> actionSource1, SematicActionSource<C> actionSource2) {
-		super(scope, actionSource1, actionSource2);
-	}
+    public TracingNanoParser(SyntaticScope scope, SematicActionSource<C> actionSource1, SematicActionSource<C> actionSource2) {
+        super(scope, actionSource1, actionSource2);
+    }
 
-	public TracingNanoParser(SyntaticScope scope, SematicActionSource<C> actionSource1, SematicActionSource<C> actionSource2, SematicActionSource<C> actionSource3) {
-		super(scope, actionSource1, actionSource2, actionSource3);
-	}
+    public TracingNanoParser(SyntaticScope scope, SematicActionSource<C> actionSource1, SematicActionSource<C> actionSource2, SematicActionSource<C> actionSource3) {
+        super(scope, actionSource1, actionSource2, actionSource3);
+    }
 
-	public TracingNanoParser(SyntaticScope scope, SematicActionSource<C>... actionSources) {
-		super(scope, actionSources);
-	}
+    public TracingNanoParser(SyntaticScope scope, SematicActionSource<C>... actionSources) {
+        super(scope, actionSources);
+    }
 
-	public TracingNanoParser(SyntaticScope scope, SematicActionSource<C> actionSource) {
-		super(scope, actionSource);
-	}
+    public TracingNanoParser(SyntaticScope scope, SematicActionSource<C> actionSource) {
+        super(scope, actionSource);
+    }
 
-	public void setTraceOut(PrintStream trace) {
-		this.trace = trace;
-	}
-	
-	@Override
-	 protected <T> T evalNode(C parserContext, Class<T> type, SourceReader source,	org.gridkit.nanoparser.NanoParser.ParseNode node) {
-		trace("evalNode to " + type.getName());
-		dump("  ", node);
-		return super.evalNode(parserContext, type, source, node);
-	}
-	
+    public void setTraceOut(PrintStream trace) {
+        this.trace = trace;
+    }
+
+    @Override
+     protected <T> T evalNode(C parserContext, Class<T> type, SourceReader source,  org.gridkit.nanoparser.NanoParser.ParseNode node) {
+        trace("evalNode to " + type.getName());
+        dump("  ", node);
+        return super.evalNode(parserContext, type, source, node);
+    }
+
     private void dump(String indent, org.gridkit.nanoparser.NanoParser.ParseNode node) {
-		trace(indent + "-> " + node.op.id() + " [" + node.op.rank() + "] '" + node.token.tokenBody() + "'");
-		if (node.leftNode != null) {
-			dump(indent + "  ", node.leftNode);
-		}
-		if (node.rightNode != null) {
-			dump(indent + "  ", node.rightNode);
-		}
-	}
+        trace(indent + "-> " + node.op.id() + " [" + node.op.rank() + "] '" + node.token.tokenBody() + "'");
+        if (node.leftNode != null) {
+            dump(indent + "  ", node.leftNode);
+        }
+        if (node.rightNode != null) {
+            dump(indent + "  ", node.rightNode);
+        }
+    }
 
-	@Override
+    @Override
     protected Error mapTermAction(Class<?> type, ParseNode node, int bestParsed) {
         trace("mapTermAction: " + type.getSimpleName() + " | " + flat(node.toString()));
         ++deepth;
@@ -79,12 +79,12 @@ public class TracingNanoParser<C> extends NanoParser<C> {
         trace(error == null ? "-> OK" : "-> ERROR: " + error);
         return error;
     }
-    
-    private String flat(String text) {
-		return text.replace('\n', ' ');
-	}
 
-	protected void trace(String text) {
+    private String flat(String text) {
+        return text.replace('\n', ' ');
+    }
+
+    protected void trace(String text) {
         if (trace != null) {
             indent();
             trace.println(text);
@@ -97,5 +97,5 @@ public class TracingNanoParser<C> extends NanoParser<C> {
                 trace.print("  ");
             }
         }
-    }        
+    }
 }

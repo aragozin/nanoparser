@@ -1,12 +1,12 @@
 /*
  * Copyright (C) 2016 Alexey Ragozin
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -27,16 +27,16 @@ public class NanoParserTest {
 
     @Test
     public void test_basic_op_rank() {
-        
+
         SyntaticScope scope = NanoGrammar.newParseTable()
                 .term("~[A-Z]")
                 .skip("~\\s")
                 .infixOp("+", "+")
                 .infixOp("*", "*").rank(2).toScope();
-        
+
         NanoParser<Void> parser = new NanoParser<Void>(scope, new SimpleParser());
         Assert.assertEquals("", SemanticValidator.validate(scope, new SimpleParser()));
-        
+
         assertParseResult(parser, "A+B", "[A+B]");
         assertParseResult(parser, "A+B+C", "[[A+B]+C]");
         assertParseResult(parser, "A+B*C", "[A+[B*C]]");
@@ -46,7 +46,7 @@ public class NanoParserTest {
 
     @Test
     public void test_parents() {
-        
+
         SyntaticScope scope = NanoGrammar.newParseTable()
                 .term("~[A-Z]")
                 .skip("~\\s")
@@ -54,10 +54,10 @@ public class NanoParserTest {
                 .infixOp("*", "*").rank(2)
                 .enclosure("()", "(", ")")
                 .toScope();
-        
+
         NanoParser<Void> parser = new NanoParser<Void>(scope, new SimpleParser());
         Assert.assertEquals("", SemanticValidator.validate(scope, new SimpleParser()));
-        
+
 //        assertParseResult(parser, "A+B", "[A+B]");
 //        assertParseResult(parser, "A+B+C", "[[A+B]+C]");
         assertParseResult(parser, "A+B*C", "[A+[B*C]]");
@@ -68,13 +68,13 @@ public class NanoParserTest {
 
     @Test
     public void test_quited_sting() {
-        
+
         SyntaticScope quoted = NanoGrammar.newParseTable()
                 .term("~[^\\\\']+")
                 .term("ESCAPE", "~\\\\.?")
                 .glueOp("CONCAT")
                 .toScope();
-        
+
         SyntaticScope scope = NanoGrammar.newParseTable()
                 .term("~[A-Z]")
                 .skip("~\\s")
@@ -83,7 +83,7 @@ public class NanoParserTest {
                 .enclosure("()", "(", ")")
                 .enclosure("", "\'", "\'").scope(quoted)
                 .toScope();
-        
+
         NanoParser<Void> parser = new NanoParser<Void>(scope, new SimpleParser());
         Assert.assertEquals("", SemanticValidator.validate(scope, new SimpleParser()));
 
@@ -96,13 +96,13 @@ public class NanoParserTest {
 
     @Test
     public void test_function_call() {
-        
+
         SyntaticScope quoted = NanoGrammar.newParseTable()
                 .term("~[^\\\\']+")
                 .term("ESCAPE", "~\\\\.?")
                 .glueOp("CONCAT")
                 .toScope();
-        
+
         SyntaticScope scope = NanoGrammar.newParseTable()
                 .term("~[A-Z]")
                 .skip("~\\s")
@@ -116,13 +116,13 @@ public class NanoParserTest {
                 .include(scope)
                 .infixOp("COMMA", ",").rank(0) // reduced rank
                 .toScope();
-        
+
         NanoGrammar.extendTable(scope)
                 .enclosure("CALL", "~[A-Za-z]+\\(", ")").scope(functionArgs);
-        
+
         NanoParser<Void> parser = new NanoParser<Void>(scope, new SimpleParser());
         Assert.assertEquals("", SemanticValidator.validate(scope, new SimpleParser()));
-        
+
 //        assertParseResult(parser, "A+x(C,D,E)", "[A+x[C, D, E]]");
         assertParseResult(parser, "x(A)+B", "[x[A]+B]");
         assertParseResult(parser, "bcd('1 2 3',D + E, F*G) + X", "[bcd[1 2 3, [D+E], [F*G]]+X]");
@@ -141,7 +141,7 @@ public class NanoParserTest {
     }
 
     public static class SimpleParser extends ReflectionActionSource<Void> {
-        
+
         @Binary("+")
         public String strPlus(String left, String right) {
             return "[" +  left + "+" + right + "]";
@@ -178,7 +178,7 @@ public class NanoParserTest {
             nhead[head.length] = tail;
             return nhead;
         }
-        
+
         @Convertion
         public String[] wrap(String val) {
             return new String[]{val};
@@ -187,7 +187,7 @@ public class NanoParserTest {
         @Unary("CALL")
         public String call(@Source Token tkn, @Convertible String[] args) {
             String op = tkn.tokenBody();
-            return op.substring(0, op.length() - 1) + Arrays.toString(args);            
+            return op.substring(0, op.length() - 1) + Arrays.toString(args);
         }
     }
  }

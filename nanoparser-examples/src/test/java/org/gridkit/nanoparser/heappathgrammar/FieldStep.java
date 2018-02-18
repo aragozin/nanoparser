@@ -7,7 +7,7 @@ class FieldStep implements HeapPathStep {
     public FieldStep(String name) {
         this.name = name;
     }
-    
+
     @Override
     public String toString() {
         return "." + name;

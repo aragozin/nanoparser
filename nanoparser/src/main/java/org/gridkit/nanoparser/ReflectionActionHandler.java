@@ -1,12 +1,12 @@
 /*
  * Copyright (C) 2016 Alexey Ragozin
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -36,13 +36,13 @@ import java.util.Map;
 public abstract class ReflectionActionHandler<C> implements SemanticActionHandler<C> {
 
     protected List<ArgConvertor> convertors = new ArrayList<ReflectionActionHandler.ArgConvertor>();
-    
+
     protected Map<TypedId, MethodOpHandler> termHandlers = new LinkedHashMap<TypedId, MethodOpHandler>();
     protected List<MethodOpHandler> unaryHandlers = new ArrayList<MethodOpHandler>();
     protected List<MethodOpHandler> binaryHandlers = new ArrayList<MethodOpHandler>();
-    
+
     protected Map<List<Object>, MethodOpHandler[]> lookupCache = new HashMap<List<Object>, MethodOpHandler[]>();
-    
+
     public ReflectionActionHandler() {
         initMethodTables();
     }
@@ -61,7 +61,7 @@ public abstract class ReflectionActionHandler<C> implements SemanticActionHandle
             r = ml.toArray(new MethodOpHandler[ml.size()]);
             lookupCache.put(key, r);
         }
-        
+
         return r;
     }
 
@@ -72,7 +72,7 @@ public abstract class ReflectionActionHandler<C> implements SemanticActionHandle
         if (r == null) {
             List<MethodOpHandler> ml = new ArrayList<MethodOpHandler>();
             for(MethodOpHandler h: unaryHandlers) {
-                if ((opId == null || opId.equals(h.id)) 
+                if ((opId == null || opId.equals(h.id))
                  && (rType == null || rType.isAssignableFrom(h.returnType))
                  && (argType == null || h.leftType().isAssignableFrom(argType))) {
                     ml.add(h);
@@ -81,7 +81,7 @@ public abstract class ReflectionActionHandler<C> implements SemanticActionHandle
             r = ml.toArray(new MethodOpHandler[ml.size()]);
             lookupCache.put(key, r);
         }
-        
+
         return r;
     }
 
@@ -92,7 +92,7 @@ public abstract class ReflectionActionHandler<C> implements SemanticActionHandle
         if (r == null) {
             List<MethodOpHandler> ml = new ArrayList<MethodOpHandler>();
             for(MethodOpHandler h: binaryHandlers) {
-                if ((opId == null || opId.equals(h.id)) 
+                if ((opId == null || opId.equals(h.id))
                  && (rType == null || rType.isAssignableFrom(h.returnType))
                  && (leftType == null || h.leftType().isAssignableFrom(leftType))
                  && (rightType == null || h.rightType().isAssignableFrom(rightType))) {
@@ -102,7 +102,7 @@ public abstract class ReflectionActionHandler<C> implements SemanticActionHandle
             r = ml.toArray(new MethodOpHandler[ml.size()]);
             lookupCache.put(key, r);
         }
-        
+
         return r;
     }
 
@@ -139,7 +139,7 @@ public abstract class ReflectionActionHandler<C> implements SemanticActionHandle
         }
         termHandlers.put(typedId(id, target), h);
     }
-    
+
     private void initConvertionMethod(Method m) {
         if (m.getParameterTypes().length != 1) {
             throw new IllegalArgumentException("@Conversion method '" + m.getName() + "' should have 1 argument");
@@ -149,11 +149,11 @@ public abstract class ReflectionActionHandler<C> implements SemanticActionHandle
         }
         MethodOpHandler h = new MethodOpHandler(this, "", m, m.getReturnType());
         h.initConversionArguments();
-        
+
         MethodArgConvertor cvt = new MethodArgConvertor(h);
         convertors.add(cvt);
     }
-    
+
     private void initUnaryMethod(Method m) {
         String id = m.getAnnotation(Unary.class).value();
         if (!Object.class.isAssignableFrom(m.getReturnType())) {
@@ -172,7 +172,7 @@ public abstract class ReflectionActionHandler<C> implements SemanticActionHandle
 
         binaryHandlers.add(h);
     }
-    
+
     protected void addConversions(List<Class<?>> conversions, Class<?> target) {
         for(ArgConvertor cvt: convertors) {
             if (target.isAssignableFrom(cvt.toType())) {
@@ -180,7 +180,7 @@ public abstract class ReflectionActionHandler<C> implements SemanticActionHandle
             }
         }
     }
-    
+
     protected ArgConvertor getConvertor(Class<?> fromType, Class<?> toType) {
         for(ArgConvertor cvt: convertors) {
             if (cvt.fromType().isAssignableFrom(fromType) && toType.isAssignableFrom(cvt.toType())) {
@@ -193,7 +193,7 @@ public abstract class ReflectionActionHandler<C> implements SemanticActionHandle
     private TypedId typedId(String id, Class<?> type) {
         return new TypedId(type, id);
     }
-    
+
     @Target(ElementType.METHOD)
     @Retention(RetentionPolicy.RUNTIME)
     protected @interface Unary {
@@ -222,7 +222,7 @@ public abstract class ReflectionActionHandler<C> implements SemanticActionHandle
     protected @interface Convertible {
         Class<?>[] value() default {};
     }
-    
+
     @Target(ElementType.PARAMETER)
     @Retention(RetentionPolicy.RUNTIME)
     protected @interface Context {
@@ -232,29 +232,29 @@ public abstract class ReflectionActionHandler<C> implements SemanticActionHandle
     @Retention(RetentionPolicy.RUNTIME)
     protected @interface Source {
     }
-    
+
     private static class MethodOpHandler implements TermActionHandler<Object, Object>, UnaryActionHandler<Object, Object, Object>, BinaryActionHandler<Object, Object, Object, Object> {
-        
+
         private final ReflectionActionHandler<?> host;
         private final String id;
         private final Class<Object> returnType;
         private Class<Object> leftType;
         private Class<Object> rightType;
-        
+
         private final Method method;
         private final ArgConvertor leftConvertor;
         private final ArgConvertor rightConvertor;
-        
+
         private int contextArg = -1;
         private int tokenArg = -1;
         private int tokenBodyArg = -1;
         private int leftArg = -1;
         private int rightArg = -1;
-        
+
         public MethodOpHandler(ReflectionActionHandler<?> host, String id, Method m, Class<?> returnType) {
             this(host, id, m, returnType, null, null);
         }
-        
+
         protected MethodOpHandler(MethodOpHandler proto, ArgConvertor leftCnv, ArgConvertor rightCnv) {
             this(proto.host, proto.id, proto.method, proto.returnType, leftCnv, rightCnv);
             this.contextArg = proto.contextArg;
@@ -263,16 +263,16 @@ public abstract class ReflectionActionHandler<C> implements SemanticActionHandle
             this.leftArg = proto.leftArg;
             this.leftType = proto.leftType;
             this.rightArg = proto.rightArg;
-            this.rightType = proto.rightType;            
+            this.rightType = proto.rightType;
         }
-        
+
         @SuppressWarnings("unchecked")
         protected MethodOpHandler(ReflectionActionHandler<?> host, String id, Method m, Class<?> returnType, ArgConvertor leftCnv, ArgConvertor rightCnv) {
             this.host = host;
             this.id = id;
             this.method = m;
             this.returnType = (Class<Object>) returnType;
-            
+
             this.leftConvertor = leftCnv;
             this.rightConvertor = rightCnv;
 
@@ -280,11 +280,11 @@ public abstract class ReflectionActionHandler<C> implements SemanticActionHandle
         }
 
         @Override
-		public Object implemetationReference() {
-			return method;
-		}
+        public Object implemetationReference() {
+            return method;
+        }
 
-		@Override
+        @Override
         public Class<Object> argType() {
             return leftType();
         }
@@ -308,11 +308,11 @@ public abstract class ReflectionActionHandler<C> implements SemanticActionHandle
             e.setStackTrace(trace);
             throw e;
         }
-        
+
         public void initTermArguments() {
             Class<?>[] paramTypes = method.getParameterTypes();
             Annotation[][] paramAnns = method.getParameterAnnotations();
-            
+
             for(int i = 0; i != paramTypes.length; ++i) {
                 if (isConvertibleAnnotated(paramAnns[i])) {
                     throw methodError("Term method '" + method.getName() + "' may not be annotated with @Convertible");
@@ -330,7 +330,7 @@ public abstract class ReflectionActionHandler<C> implements SemanticActionHandle
                     if (tokenArg >= 0) {
                         throw methodError("Method '" + method.getName() + "' only one argument can be annotated with @Source");
                     }
-                    tokenArg = i;    
+                    tokenArg = i;
                     if (paramTypes[i] != Source.class) {
                         throw methodError("Method '" + method.getName() + "' only one argument annotated with @Token should have type Token");
                     }
@@ -351,7 +351,7 @@ public abstract class ReflectionActionHandler<C> implements SemanticActionHandle
         public void initConversionArguments() {
             Class<?>[] paramTypes = method.getParameterTypes();
             Annotation[][] paramAnns = method.getParameterAnnotations();
-            
+
             for(int i = 0; i != paramTypes.length; ++i) {
                 if (isConvertibleAnnotated(paramAnns[i])) {
                     throw methodError("Conversion method '" + method.getName() + "' may not be annotated with @Convertible");
@@ -362,22 +362,22 @@ public abstract class ReflectionActionHandler<C> implements SemanticActionHandle
                     }
                     contextArg = i;
                     if (isTokenAnnotated(paramAnns[i])) {
-                        throw methodError("Method '" + method.getName() + "' may not be annotated with @Context and @Source");                        
+                        throw methodError("Method '" + method.getName() + "' may not be annotated with @Context and @Source");
                     }
                     if (isConvertibleAnnotated(paramAnns[i])) {
-                        throw methodError("Method '" + method.getName() + "' may not be annotated with @Context and @Convertible");                        
+                        throw methodError("Method '" + method.getName() + "' may not be annotated with @Context and @Convertible");
                     }
                 }
                 else if (isTokenAnnotated(paramAnns[i])) {
                     if (tokenArg >= 0) {
                         throw methodError("Method '" + method.getName() + "' only one argument can be annotated with @Source");
                     }
-                    tokenArg = i;    
+                    tokenArg = i;
                     if (paramTypes[i] != Source.class) {
                         throw methodError("Method '" + method.getName() + "' argument annotated with @Source should have type Token");
                     }
                     if (isConvertibleAnnotated(paramAnns[i])) {
-                        throw methodError("Method '" + method.getName() + "' may not be annotated with @Source and @Convertible");                        
+                        throw methodError("Method '" + method.getName() + "' may not be annotated with @Source and @Convertible");
                     }
                 }
                 else {
@@ -390,17 +390,17 @@ public abstract class ReflectionActionHandler<C> implements SemanticActionHandle
                         throw methodError("Method '" + method.getName() + "' - @Conversion method should have one input argument of reference type");
                     }
                 }
-            }            
+            }
             if (leftArg < 0) {
                 throw methodError("Method '" + method.getName() + "' - @Conversion method should have one input argument");
             }
         }
-        
+
         @SuppressWarnings("unchecked")
         public void initUnaryArgumnets() {
             Class<?>[] paramTypes = method.getParameterTypes();
             Annotation[][] paramAnns = method.getParameterAnnotations();
-            
+
             for(int i = 0; i != paramTypes.length; ++i) {
                 if (isContextAnnotated(paramAnns[i])) {
                     if (contextArg >= 0) {
@@ -408,22 +408,22 @@ public abstract class ReflectionActionHandler<C> implements SemanticActionHandle
                     }
                     contextArg = i;
                     if (isTokenAnnotated(paramAnns[i])) {
-                        throw methodError("Method '" + method.getName() + "' may not be annotated with @Context and @Source");                        
+                        throw methodError("Method '" + method.getName() + "' may not be annotated with @Context and @Source");
                     }
                     if (isConvertibleAnnotated(paramAnns[i])) {
-                        throw methodError("Method '" + method.getName() + "' may not be annotated with @Context and @Convertible");                        
+                        throw methodError("Method '" + method.getName() + "' may not be annotated with @Context and @Convertible");
                     }
                 }
                 else if (isTokenAnnotated(paramAnns[i])) {
                     if (tokenArg >= 0) {
                         throw methodError("Method '" + method.getName() + "' only one argument can be annotated with @Source");
                     }
-                    tokenArg = i;    
+                    tokenArg = i;
                     if (paramTypes[i] != Token.class) {
                         throw methodError("Method '" + method.getName() + "' argument annotated with @Source should have type Token");
                     }
                     if (isConvertibleAnnotated(paramAnns[i])) {
-                        throw methodError("Method '" + method.getName() + "' may not be annotated with @Source and @Convertible");                        
+                        throw methodError("Method '" + method.getName() + "' may not be annotated with @Source and @Convertible");
                     }
                 }
                 else {
@@ -436,17 +436,17 @@ public abstract class ReflectionActionHandler<C> implements SemanticActionHandle
                         throw methodError("Method '" + method.getName() + "' - @Unary method should have one input argument of reference type");
                     }
                 }
-            }            
+            }
             if (leftArg < 0) {
                 throw methodError("Method '" + method.getName() + "' - @Unary method should have one input argument");
-            }            
+            }
         }
-        
+
         @SuppressWarnings("unchecked")
         public void initBinaryArguments() {
             Class<?>[] paramTypes = method.getParameterTypes();
             Annotation[][] paramAnns = method.getParameterAnnotations();
-            
+
             for(int i = 0; i != paramTypes.length; ++i) {
                 if (isContextAnnotated(paramAnns[i])) {
                     if (contextArg >= 0) {
@@ -458,7 +458,7 @@ public abstract class ReflectionActionHandler<C> implements SemanticActionHandle
                     if (tokenArg >= 0) {
                         throw methodError("Method '" + method.getName() + "' only one argument can be annotated with @Source");
                     }
-                    tokenArg = i;    
+                    tokenArg = i;
                     if (paramTypes[i] != Source.class) {
                         throw methodError("Method '" + method.getName() + "' argument annotated with @Source should have type Token");
                     }
@@ -479,13 +479,13 @@ public abstract class ReflectionActionHandler<C> implements SemanticActionHandle
                         rightType = (Class<Object>)paramTypes[i];
                         if (rightType.isPrimitive()) {
                             throw methodError("Method '" + method.getName() + "' - @Binary method should have two input arguments of reference type");
-                        }                        
+                        }
                     }
                 }
-            }            
+            }
             if (rightArg < 0) {
                 throw methodError("Method '" + method.getName() + "' - @Binary method should have one two arguments");
-            }                        
+            }
         }
 
         public void initConvertionPermutations(ReflectionActionHandler<?> host, List<MethodOpHandler> result) {
@@ -511,7 +511,7 @@ public abstract class ReflectionActionHandler<C> implements SemanticActionHandle
                     right.addAll(Arrays.asList(rc.value()));
                 }
             }
-            
+
             for(Class<?> lt: left) {
                 for(Class<?> rt: right) {
                     if (lt == null && rt == null) {
@@ -538,7 +538,7 @@ public abstract class ReflectionActionHandler<C> implements SemanticActionHandle
                 }
             }
         }
-        
+
         private boolean isContextAnnotated(Annotation[] annotations) {
             for(Annotation a: annotations) {
                 if (a instanceof Context) {
@@ -565,16 +565,16 @@ public abstract class ReflectionActionHandler<C> implements SemanticActionHandle
             }
             return false;
         }
-        
+
         private Convertible getConvertibleAnnotation(Annotation[] annotations) {
             for(Annotation a: annotations) {
                 if (a instanceof Convertible) {
                     return (Convertible) a;
                 }
             }
-            return null;            
+            return null;
         }
-        
+
         @Override
         @SuppressWarnings("unchecked")
         public Class<Object> leftType() {
@@ -591,18 +591,18 @@ public abstract class ReflectionActionHandler<C> implements SemanticActionHandle
         public Object apply(Object parserContext, Token token) {
             return apply(parserContext, token, null, null);
         }
-        
+
         @Override
         public Object apply(Object parserContext, Token token, Object arg) {
             return apply(parserContext, token, arg, null);
         }
-        
+
         @Override
         public Object apply(Object parserContext, Token token, Object inleft, Object inright) {
             try {
                 Object left = leftConvertor != null ? leftConvertor.convert(parserContext, token, inleft) : inleft;
                 Object right = rightConvertor != null ? rightConvertor.convert(parserContext, token, inright) : inright;
-                
+
                 Object[] args = new Object[method.getParameterTypes().length];
                 if (contextArg >= 0) {
                     args[contextArg] = parserContext;
@@ -626,7 +626,7 @@ public abstract class ReflectionActionHandler<C> implements SemanticActionHandle
                 throw new RuntimeException(e);
             }
         }
-        
+
         public String toString() {
             StringBuilder sb = new StringBuilder();
             sb.append(id).append('[');
@@ -634,31 +634,31 @@ public abstract class ReflectionActionHandler<C> implements SemanticActionHandle
                 sb.append(leftType().getSimpleName());
             }
             if (rightType != null) {
-                sb.append(',').append(rightType().getSimpleName());                
+                sb.append(',').append(rightType().getSimpleName());
             }
             sb.append("] -> ").append(method.getName());
             return sb.toString();
         }
     }
-    
+
     interface ArgConvertor {
-        
+
         public Class<?> fromType();
 
         public Class<?> toType();
-        
+
         public Object convert(Object parserContext, Token token, Object value);
     }
-    
+
     class MethodArgConvertor implements ArgConvertor {
-     
+
         private final MethodOpHandler handler;
 
         public MethodArgConvertor(MethodOpHandler handler) {
             super();
             this.handler = handler;
         }
-        
+
         @Override
         public Class<?> fromType() {
             return handler.leftType;
@@ -672,14 +672,14 @@ public abstract class ReflectionActionHandler<C> implements SemanticActionHandle
         @Override
         public Object convert(Object parserContext, Token token, Object value) {
             return handler.apply(parserContext, token, value);
-        }        
+        }
     }
-    
+
     private static class TypedId {
-        
+
         final Class<?> type;
         final String id;
-        
+
         public TypedId(Class<?> type, String id) {
             this.type = type;
             this.id = id;
@@ -721,24 +721,24 @@ public abstract class ReflectionActionHandler<C> implements SemanticActionHandle
             return id + ":" + type.getSimpleName();
         }
     }
-    
+
     private static RuntimeException throwUnchecked(Throwable e) {
         ReflectionActionHandler.<RuntimeException>throwAny(e);
         return null;
     }
-    
+
     @SuppressWarnings("unchecked")
     private static <E extends Throwable> void throwAny(Throwable e) throws E {
         throw (E)e;
     }
-    
+
     /**
      * Utility method
      */
     protected static <T> T[] append(T[] a, T... b) {
         T[] r = Arrays.copyOf(a, a.length + b.length);
         System.arraycopy(b, 0, r, a.length, b.length);
-        return r;       
+        return r;
     }
 
     /**
@@ -747,6 +747,6 @@ public abstract class ReflectionActionHandler<C> implements SemanticActionHandle
     protected static <T> T[] append(T[] a, T b) {
         T[] r = Arrays.copyOf(a, a.length + 1);
         r[a.length] = b;
-        return r;       
+        return r;
     }
 }
