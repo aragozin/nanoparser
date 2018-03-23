@@ -69,10 +69,14 @@ public class NanoGrammar {
 
         public TermBuilder<T> term(String pattern);
 
+        /** Shortcut for <code>term(pattern, pattern)</code> */
+        public TermBuilder<T> token(String pattern);
+
         public TermBuilder<T> term(String opID, String pattern);
 
         public TermBuilder<T> term(String opID, TokenMatcher[] pattern);
 
+        /** Special token marking end of expression. Allow to parse multiple independent expressions from single text */
         public TermBuilder<T> separator(String pattern);
 
         public OpInfixBuilder<T> infixOp(String opID, String pattern);
@@ -131,6 +135,7 @@ public class NanoGrammar {
 
         public SyntaticScope toScope();
 
+        @Override
         public SyntaticScope toLazyScope();
     }
 
@@ -357,6 +362,12 @@ public class NanoGrammar {
         }
 
         @Override
+        public TermBuilder token(String pattern) {
+            term(pattern, pattern);
+            return this;
+        }
+
+        @Override
         public TermBuilder term(String opID, String pattern) {
             return term(opID, new TokenMatcher[]{simpleMatcher(pattern)});
         }
@@ -546,6 +557,7 @@ public class NanoGrammar {
             return this;
         }
 
+        @Override
         public Builder rank(int rank) {
             if (nested != null) {
                 nested.rank(rank);
@@ -696,6 +708,7 @@ public class NanoGrammar {
             this.opInfo = opInfo;
         }
 
+        @Override
         public void apply(ScopeBuilder builder) {
             builder.addOperator(pattern, opInfo);
         }
@@ -715,6 +728,7 @@ public class NanoGrammar {
             this.implicitPostfix = implicitPostfix;
         }
 
+        @Override
         public void apply(ScopeBuilder builder) {
             builder.addToken(pattern, opInfo, implicitPrefix, implicitPostfix);
         }
@@ -728,6 +742,7 @@ public class NanoGrammar {
             this.opInfo = opInfo;
         }
 
+        @Override
         public void apply(ScopeBuilder builder) {
             builder.addGlueOperator(opInfo);
         }
@@ -753,6 +768,7 @@ public class NanoGrammar {
             this.optionalPrefix = optionalPrefix;
         }
 
+        @Override
         public void apply(ScopeBuilder builder) {
             builder.addEnclosing(openPattern, opInfo, prefixOp, optionalPrefix, new NestedScope(pscope, closePattern), new NestedScope(nscope, closePattern));
         }
@@ -766,6 +782,7 @@ public class NanoGrammar {
             this.pattern = pattern;
         }
 
+        @Override
         public void apply(ScopeBuilder builder) {
             builder.addSkipToken(pattern);
         }

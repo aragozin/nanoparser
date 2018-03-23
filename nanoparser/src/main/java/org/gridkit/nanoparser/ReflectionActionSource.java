@@ -668,14 +668,15 @@ public abstract class ReflectionActionSource<C> implements SematicActionSource<C
                 }
                 else {
                     args[tokenArg[0]] = tkn;
-                    for(int i = 1; i < args.length; ++i) {
+                    for(int i = 1; i < tokenArg.length; ++i) {
                         args[tokenArg[i]] = null;
                     }
                 }
             }
         }
 
-        public String toString() {
+        @Override
+		public String toString() {
             StringBuilder sb = new StringBuilder();
             sb.append(id).append('[');
             if (leftType != null) {

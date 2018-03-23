@@ -16,6 +16,7 @@
 package org.gridkit.nanoparser;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.gridkit.nanoparser.NanoGrammar.OpType;
@@ -251,7 +252,7 @@ public class NanoParser<C> {
 
     protected Error mapTermAction(Class<?> type, ParseNode node, int bestParsed) {
         if (NanoGrammar.ACTION_NOOP.equals(node.op.id())) {
-            if (type != String.class) {
+            if (type != String.class && type != Object.class) {
                 return errorConversion(node.token, bestParsed, type, String.class);
             }
             else {
@@ -281,14 +282,7 @@ public class NanoParser<C> {
                 Class<?> at = h.argType();
                 Error e = mapActions(at, node.leftNode, node.leftNode.token.offset());
                 if (e != null) {
-                    if (fe != null) {
-                        if (e.token.offset() > fe.token.offset()) {
-                            fe = e;
-                        }
-                    }
-                    else {
-                        fe = e;
-                    }
+                    fe = bestError(fe, e);
                 }
                 else {
                     // solution found
@@ -325,22 +319,7 @@ public class NanoParser<C> {
                 e = mapActions(rt, node.rightNode, progress);
             }
             if (e != null) {
-                if (fe != null) {
-                    if (e.bestProgress > fe.bestProgress) {
-                        fe = e;
-                    }
-//                    else if (node.token.offset() > fe.token.offset()) {
-//                        if (fe instanceof OperationError) {
-//                            Class<?> dt = defaultType(node.leftNode);
-//                            if (dt != null && dt != h.leftType()) {
-//                                fe = new ConversionError(node.token, h.leftType(), dt);
-//                            }
-//                        }
-//                    }
-                }
-                else {
-                    fe = e;
-                }
+                fe = bestError(fe, e);
             }
             else {
                 // solution found
@@ -551,6 +530,31 @@ public class NanoParser<C> {
         return node.rightNode == null;
     }
 
+    private Error bestError(Error a, Error b) {
+        if (a == null) {
+            return b;
+        } else if (b == null) {
+            return a;
+        }
+        if (a.bestProgress > b.bestProgress) {
+            return a;
+        } else if (b.bestProgress > a.bestProgress) {
+            return b;
+        } else if (a.token == b.token) {
+            if (a instanceof ConversionError && b instanceof ConversionError) {
+                ConversionError ca = (ConversionError) a;
+                ConversionError cb = (ConversionError) b;
+                return new ConversionError(ca, cb);
+            } else if (a instanceof OperationError && b instanceof OperationError) {
+                OperationError ca = (OperationError) a;
+                OperationError cb = (OperationError) b;
+                return new OperationError(ca, cb);
+            }
+        }
+
+        return b;
+    }
+
     Error errorConversion(Token token, int bestParsed, Class<?> targetType, Class<?> sourceType) {
         ConversionError error = new ConversionError(token, targetType, sourceType);
         error.bestProgress = bestParsed;
@@ -577,19 +581,106 @@ public class NanoParser<C> {
 
     private static class ConversionError extends Error {
 
+        private List<String> targetType;
+        private List<String> sourceType;
+
         public ConversionError(Token token, Class<?> targetType, Class<?> sourceType) {
             this.token = token;
+            this.targetType = Collections.singletonList(targetType.getSimpleName());
+            this.sourceType = Collections.singletonList(sourceType.getSimpleName());
             this.message = "Required type '" + targetType.getSimpleName() + "' but found '" + sourceType.getSimpleName() + "'";
             this.bestProgress = token.offset();
+        }
+
+        public ConversionError(ConversionError a, ConversionError b) {
+            this.token = a.token;
+            this.bestProgress = token.offset();
+            this.targetType = new ArrayList<String>();
+            this.sourceType = new ArrayList<String>();
+            for (String c: a.sourceType) {
+                if (!sourceType.contains(c)) {
+                    sourceType.add(c);
+                }
+            }
+            for (String c: b.sourceType) {
+                if (!sourceType.contains(c)) {
+                    sourceType.add(c);
+                }
+            }
+            for (String c: a.targetType) {
+                if (!targetType.contains(c)) {
+                    targetType.add(c);
+                }
+            }
+            for (String c: b.targetType) {
+                if (!targetType.contains(c)) {
+                    targetType.add(c);
+                }
+            }
+
+            Collections.sort(sourceType);
+            Collections.sort(targetType);
+
+            this.message = "Required " + (targetType.size() == 1 ? "type " : "one of [")
+                    + toString(targetType) + (targetType.size() == 1 ? "" : "]")
+                    + (sourceType.size() == 1 ? " but found " : " but token can be interpreted as [")
+                    + toString(sourceType) + (sourceType.size() == 1 ? "" : "]");
+            this.bestProgress = token.offset();
+        }
+
+        private String toString(List<String> typeList) {
+            StringBuilder sb = new StringBuilder();
+            for (String c: typeList) {
+                if (sb.length() > 0) {
+                    sb.append(", ");
+                }
+                sb.append("'").append(c).append("'");
+            }
+            return sb.toString();
         }
     }
 
     private static class OperationError extends Error {
 
+        private String opId;
+        private List<String> targetType;
+
         public OperationError(Token token, Class<?> targetType, String opId) {
             this.token = token;
+            this.opId = opId;
+            this.targetType = Collections.singletonList(targetType.getSimpleName());
             this.message = "No action for '" + opId + "' producing '" + targetType.getSimpleName() + "'";
             this.bestProgress = token.offset();
+        }
+
+        public OperationError(OperationError a, OperationError b) {
+            this.token = a.token;
+            this.bestProgress = token.offset();
+
+            this.targetType = new ArrayList<String>();
+            for (String c: a.targetType) {
+                if (!targetType.contains(c)) {
+                    targetType.add(c);
+                }
+            }
+            for (String c: b.targetType) {
+                if (!targetType.contains(c)) {
+                    targetType.add(c);
+                }
+            }
+            Collections.sort(targetType);
+            this.message = "No action for '" + a.opId + "' producing " + (targetType.size() == 1 ? toString(targetType) : ("eigther of " + toString(targetType)));
+        }
+
+        private String toString(List<String> typeList) {
+            StringBuilder sb = new StringBuilder();
+            for (String c: typeList) {
+                if (sb.length() > 0) {
+                    sb.append(", ");
+                }
+                sb.append("'").append(c).append("'");
+            }
+            return sb.toString();
         }
     }
 
@@ -866,6 +957,7 @@ public class NanoParser<C> {
             }
         }
 
+        @Override
         public String toString() {
             if (term) {
                 return "TERM{" + matchersToString(matchers) + "}";
