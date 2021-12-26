@@ -28,7 +28,7 @@
 
   <groupId>org.gridkit.nanoparser</groupId>
   <artifactId>nanoparser-parent</artifactId>
-  <version>0.2-SNAPSHOT</version>
+  <version>0.2</version>
   <name>${project.groupId}::${project.artifactId}</name>
   <description>Nanoparser - parent pom</description>
   <packaging>pom</packaging>
@@ -59,7 +59,7 @@
     <connection>scm:git:https://github.com/aragozin/nanoparser.git</connection>
     <developerConnection>scm:git:https://github.com/aragozin/nanoparser.git</developerConnection>
     <url>https://github.com/aragozin/nanoparser</url>
-    <tag>HEAD</tag>
+    <tag>nanoparser-parent-0.2</tag>
   </scm>
 
   <build>
